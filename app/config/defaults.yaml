@@ -1,0 +1,50 @@
+# DETECH — Configuración por defecto
+# Este archivo define los valores base. El usuario puede sobreescribirlos
+# creando un archivo detech.yaml en la raíz del proyecto.
+
+language: python
+
+thresholds:
+  max_function_lines: 50         # Líneas máximas por función
+  max_file_lines: 500            # Líneas máximas por archivo
+  max_line_length: 79            # Longitud máxima de línea (PEP 8)
+  max_complexity: 10             # Complejidad ciclomática máxima estimada
+  max_nesting_depth: 4           # Niveles de anidamiento máximos
+  max_parameters: 5              # Parámetros máximos por función
+  max_imports: 15                # Módulos importados máximos por archivo
+  min_commented_code_block: 3    # Mínimo de líneas consecutivas comentadas para alertar
+
+rules:
+  legibility:
+    long_function: true
+    large_file: true
+    short_variable_name: true
+    missing_docstring: true
+    long_line: true
+    inconsistent_indent: true
+  complexity:
+    high_complexity: true
+    deep_nesting: true
+    too_many_params: true
+    high_coupling: true
+  dead_code:
+    commented_code: true
+    unused_import: true
+    pending_annotations: true
+  security:
+    hardcoded_credentials: true
+    dangerous_functions: true
+    sql_concatenation: true
+  style:
+    naming_convention: true
+    missing_module_docstring: true
+
+# Patrones personalizados del usuario
+# Ejemplo:
+# custom_patterns:
+#   - id: "custom_001"
+#     name: "Uso de print() en producción"
+#     pattern: "\\bprint\\s*\\("
+#     severity: "info"
+#     message: "Uso de print() detectado. Considera usar logging."
+custom_patterns: []

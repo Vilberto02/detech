@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Detech | Reporte de Anomalías</title>
+  <style>
+    /* ── Base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0a0a18;
+      --surface:      #111128;
+      --border:       #1e1e3a;
+      --text:         #e2e8f0;
+      --text-muted:   #64748b;
+      --indigo:       #6366f1;
+      --violet:       #8b5cf6;
+      --critical:     #ef4444;
+      --critical-bg:  #2a0e0e;
+      --warning:      #f59e0b;
+      --warning-bg:   #271a05;
+      --info:         #3b82f6;
+      --info-bg:      #0c1a2e;
+      --success:      #10b981;
+    }
+
+    @page {
+      size: A4;
+      margin: 20mm 15mm;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 24px;
+    }
+
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.9em;
+      background: rgba(99,102,241,0.15);
+      color: #a5b4fc;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────── */
+    .report-header {
+      background: linear-gradient(135deg, #0f0f2e 0%, #1a0a2e 100%);
+      border: 1px solid #2a2a5a;
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .report-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .report-logo-box {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+    }
+
+    .report-logo-text h1 {
+      font-size: 20px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a5b4fc, #f0abfc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .report-logo-text p {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .report-meta {
+      text-align: right;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    /* ── Summary Cards ───────────────────────────────────────────── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .stat-card.critical { border-color: rgba(239,68,68,0.4);  background: var(--critical-bg); }
+    .stat-card.warning  { border-color: rgba(245,158,11,0.4); background: var(--warning-bg);  }
+    .stat-card.info     { border-color: rgba(59,130,246,0.4); background: var(--info-bg);     }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      font-family: 'Consolas', monospace;
+      line-height: 1;
+    }
+
+    .stat-card.critical .stat-value { color: var(--critical); }
+    .stat-card.warning  .stat-value { color: var(--warning);  }
+    .stat-card.info     .stat-value { color: var(--info);     }
+
+    /* ── Category Summary ────────────────────────────────────────── */
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .category-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .category-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .category-count {
+      font-size: 16px;
+      font-weight: 800;
+      font-family: 'Consolas', monospace;
+      color: var(--indigo);
+    }
+
+    /* ── File Sections ───────────────────────────────────────────── */
+    .file-section {
+      margin-bottom: 20px;
+      page-break-inside: avoid;
+    }
+
+    .file-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px 10px 0 0;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .file-name {
+      font-family: 'Consolas', monospace;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #a5b4fc;
+    }
+
+    .file-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .badges { display: flex; gap: 6px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .badge-critical { background: rgba(239,68,68,0.2);  color: var(--critical); border: 1px solid rgba(239,68,68,0.4); }
+    .badge-warning  { background: rgba(245,158,11,0.2); color: var(--warning);  border: 1px solid rgba(245,158,11,0.4); }
+    .badge-info     { background: rgba(59,130,246,0.2); color: var(--info);     border: 1px solid rgba(59,130,246,0.4); }
+    .badge-success  { background: rgba(16,185,129,0.2); color: var(--success);  border: 1px solid rgba(16,185,129,0.4); }
+
+    /* ── Anomaly Table ───────────────────────────────────────────── */
+    .anomaly-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      overflow: hidden;
+    }
+
+    .anomaly-table th {
+      background: rgba(17,17,40,0.8);
+      color: var(--text-muted);
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .anomaly-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid rgba(30,30,58,0.8);
+      vertical-align: top;
+      font-size: 11px;
+    }
+
+    .anomaly-table tr:last-child td { border-bottom: none; }
+
+    .anomaly-table tr:nth-child(even) td { background: rgba(17,17,40,0.4); }
+
+    .col-line {
+      font-family: 'Consolas', monospace;
+      color: var(--text-muted);
+      white-space: nowrap;
+      font-size: 10px;
+    }
+
+    .col-rule {
+      font-family: 'Consolas', monospace;
+      color: #a5b4fc;
+      white-space: nowrap;
+      font-size: 10px;
+    }
+
+    .col-message { color: var(--text); line-height: 1.5; }
+
+    .col-context {
+      font-family: 'Consolas', monospace;
+      font-size: 9.5px;
+      color: var(--text-muted);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .no-anomalies {
+      text-align: center;
+      padding: 16px;
+      color: var(--success);
+      font-size: 11px;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────── */
+    .report-footer {
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="report-header">
+    <div class="report-logo">
+      <div class="report-logo-box">DT</div>
+      <div class="report-logo-text">
+        <h1>DETECH</h1>
+      </div>
+    </div>
+    <div class="report-meta">
+      <div><strong>Generado:</strong> {{ generated_at }}</div>
+      <div><strong>Archivos:</strong> {{ summary.total_files }}</div>
+      <div><strong>Total anomalías:</strong> {{ summary.total_anomalies }}</div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="stat-label">Archivos analizados</div>
+      <div class="stat-value">{{ summary.total_files }}</div>
+    </div>
+    <div class="stat-card critical">
+      <div class="stat-label">Críticos</div>
+      <div class="stat-value">{{ summary.critical }}</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-label">Advertencias</div>
+      <div class="stat-value">{{ summary.warning }}</div>
+    </div>
+    <div class="stat-card info">
+      <div class="stat-label">Informativos</div>
+      <div class="stat-value">{{ summary.info }}</div>
+    </div>
+  </div>
+
+  <!-- Category Breakdown -->
+  {% if categories %}
+  <div style="margin-bottom: 20px;">
+    <div class="section-title">Desglose por Categoría</div>
+    <div class="category-grid">
+      {% for cat, anomalies in categories.items() %}
+      <div class="category-chip">
+        <span class="category-name">{{ cat_labels.get(cat, cat) }}</span>
+        <span class="category-count">{{ anomalies|length }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- File Results -->
+  <div class="section-title">Detalle por Archivo</div>
+
+  {% for file in files %}
+  <div class="file-section">
+    <div class="file-header">
+      <div class="file-name">📄 {{ file.filepath }}</div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="file-meta">{{ file.total_lines }} líneas · {{ file.anomaly_count }} anomalías</span>
+        <div class="badges">
+          {% if file.critical > 0 %}<span class="badge badge-critical">{{ file.critical }} Crítico</span>{% endif %}
+          {% if file.warning  > 0 %}<span class="badge badge-warning">{{ file.warning }} Advertencia</span>{% endif %}
+          {% if file.info     > 0 %}<span class="badge badge-info">{{ file.info }} Info</span>{% endif %}
+          {% if file.anomaly_count == 0 %}<span class="badge badge-success">✓ Sin anomalías</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if file.anomalies %}
+    <table class="anomaly-table">
+      <thead>
+        <tr>
+          <th>Línea</th>
+          <th>Regla</th>
+          <th>Severidad</th>
+          <th>Descripción</th>
+          <th>Contexto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in file.anomalies %}
+        <tr>
+          <td class="col-line">#{{ a.line }}</td>
+          <td class="col-rule">{{ a.rule_id }}</td>
+          <td>
+            <span class="badge badge-{{ 'critical' if a.severity == 'critical' else 'warning' if a.severity == 'warning' else 'info' }}">
+              {{ 'Crítico' if a.severity == 'critical' else 'Advertencia' if a.severity == 'warning' else 'Info' }}
+            </span>
+          </td>
+          <td class="col-message">{{ a.message }}</td>
+          <td class="col-context">{{ a.context if a.context else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="no-anomalies" style="border: 1px solid #1e1e3a; border-top: none; border-radius: 0 0 10px 10px;">
+      No se detectaron anomalías en este archivo
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <!-- Footer -->
+  <div class="report-footer">
+    DETECH v0.1.0 — Herramienta de Detección Estática de Anomalías en Código Python ·
+    Generado el {{ generated_at }}
+  </div>
+
+</body>
+</html>
