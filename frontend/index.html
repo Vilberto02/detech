@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/static/css/styles.css" />
@@ -21,49 +21,6 @@
     <header class="header">
       <div class="header-inner">
         <div class="logo">
-          <div class="logo-icon">
-            <svg
-              viewBox="0 0 32 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect width="32" height="32" rx="8" fill="url(#grad-logo)" />
-              <path
-                d="M8 16L13 11L18 16L23 10"
-                stroke="white"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <circle
-                cx="23"
-                cy="22"
-                r="4"
-                fill="#f87171"
-                stroke="white"
-                stroke-width="1.5"
-              />
-              <path
-                d="M21.5 22H24.5M23 20.5V23.5"
-                stroke="white"
-                stroke-width="1.5"
-                stroke-linecap="round"
-              />
-              <defs>
-                <linearGradient
-                  id="grad-logo"
-                  x1="0"
-                  y1="0"
-                  x2="32"
-                  y2="32"
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <stop stop-color="#6366f1" />
-                  <stop offset="1" stop-color="#8b5cf6" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
           <div class="logo-text">
             <span class="logo-name">DETECH</span>
           </div>
@@ -72,27 +29,16 @@
           <a href="#upload-section" class="nav-link" id="nav-analyze"
             >Analizar</a
           >
-          <a href="http://localhost:8000/docs" target="_blank" class="nav-link"
-            >API Docs</a
-          >
-          <span class="version-badge">v0.1.0</span>
+          <a href="/docs" target="_blank" class="nav-link">API Docs</a>
+          <button id="theme-toggle" class="btn btn-ghost btn-sm">Tema</button>
         </nav>
       </div>
     </header>
 
     <!-- ── HERO ─────────────────────────────────────────────────────────── -->
-    <section class="hero">
-      <div class="hero-bg-orb orb-1"></div>
-      <div class="hero-bg-orb orb-2"></div>
+    <section class="hero-band">
       <div class="hero-content">
-        <div class="hero-badge">
-          <span class="badge-dot"></span>
-          Análisis estático
-        </div>
-        <h1 class="hero-title">
-          Detección de anomalías en<br />
-          <span class="gradient-text">código Python</span>
-        </h1>
+        <h1 class="hero-title">Detección de anomalías en código Python</h1>
         <p class="hero-subtitle">
           Sube uno o varios archivos <code>.py</code> y obtén un reporte
           detallado de problemas de legibilidad, complejidad, seguridad y
@@ -101,48 +47,32 @@
       </div>
     </section>
 
-    <!-- ── UPLOAD SECTION ───────────────────────────────────────────────── -->
+    <!-- ── MAIN CANVAS ──────────────────────────────────────────────────── -->
     <main class="main-content">
+      <!-- ── UPLOAD SECTION ─────────────────────────────────────────────── -->
       <section id="upload-section" class="upload-section">
-        <!-- Drop Zone -->
-        <div class="upload-card" id="upload-card">
+        <div class="code-block" id="upload-card">
           <div id="drop-zone" class="drop-zone">
             <div class="drop-zone-icon">
               <svg
-                viewBox="0 0 48 48"
+                viewBox="0 0 24 24"
                 fill="none"
-                xmlns="http://www.w3.org/2000/svg"
+                stroke="currentColor"
+                stroke-width="2"
               >
                 <path
-                  d="M24 32V16M24 16L18 22M24 16L30 22"
-                  stroke="currentColor"
-                  stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                />
-                <path
-                  d="M8 36C8 36 6 36 6 34V14C6 12 8 10 10 10H20L24 14H38C40 14 42 16 42 18V34C42 36 40 36 38 36H8Z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                 />
               </svg>
             </div>
             <div class="drop-zone-text">
               <p class="drop-title">Arrastra tus archivos aquí</p>
-              <p class="drop-subtitle">o haz clic para seleccionar</p>
               <p class="drop-hint">Solo archivos <code>.py</code></p>
             </div>
             <input type="file" id="file-input" accept=".py" multiple hidden />
-            <button class="btn btn-primary" id="browse-btn" type="button">
-              <svg viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fill-rule="evenodd"
-                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+            <button class="btn btn-outline" id="browse-btn" type="button">
               Seleccionar archivos
             </button>
           </div>
@@ -152,15 +82,7 @@
 
           <!-- Analyze Button -->
           <div class="upload-actions" id="upload-actions" style="display: none">
-            <button class="btn btn-analyze" id="analyze-btn" type="button">
-              <svg viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9 9a2 2 0 114 0 2 2 0 01-4 0z" />
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a4 4 0 00-3.446 6.032l-2.261 2.26a1 1 0 101.414 1.415l2.261-2.261A4 4 0 1011 5z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+            <button class="btn btn-primary" id="analyze-btn" type="button">
               Analizar código
             </button>
             <button class="btn btn-ghost" id="clear-btn" type="button">
@@ -171,161 +93,91 @@
 
         <!-- Loading Overlay -->
         <div id="loading-overlay" class="loading-overlay hidden">
-          <div class="loading-spinner"></div>
           <p class="loading-text">
-            Analizando código<span class="loading-dots"></span>
+            Analizando código<span class="loading-dots">...</span>
           </p>
         </div>
       </section>
 
       <!-- ── RESULTS SECTION ──────────────────────────────────────────── -->
       <section id="results-section" class="results-section hidden">
-        <!-- Summary Cards -->
         <div class="results-header">
-          <div class="results-title-row">
-            <h2 class="results-title">Resultado del Análisis</h2>
-            <div class="export-buttons">
-              <button class="btn btn-export" id="export-html-btn" type="button">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                Exportar HTML
-              </button>
-              <button
-                class="btn btn-export btn-pdf"
-                id="export-pdf-btn"
-                type="button"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                Exportar PDF
-              </button>
-              <button class="btn btn-ghost" id="new-analysis-btn" type="button">
-                Nuevo análisis
-              </button>
-            </div>
+          <h2 class="display-xl">Resultados</h2>
+          <div class="export-buttons">
+            <button class="btn btn-outline" id="export-html-btn" type="button">
+              Exportar HTML
+            </button>
+            <button class="btn btn-outline" id="export-pdf-btn" type="button">
+              Exportar PDF
+            </button>
+            <button class="btn btn-dark" id="new-analysis-btn" type="button">
+              Nuevo análisis
+            </button>
           </div>
+        </div>
 
-          <div class="summary-cards" id="summary-cards">
-            <div class="stat-card" id="card-files">
-              <div class="stat-icon stat-icon-files">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z"
-                    clip-rule="evenodd"
-                  />
-                  <path
-                    d="M6 12a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H2h2a2 2 0 002-2v-2z"
-                  />
-                </svg>
-              </div>
-              <div class="stat-info">
-                <span class="stat-value" id="stat-files">0</span>
-                <span class="stat-label">Archivos</span>
-              </div>
-            </div>
-            <div class="stat-card stat-card-critical" id="card-critical">
-              <div class="stat-icon stat-icon-critical">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div class="stat-info">
-                <span class="stat-value" id="stat-critical">0</span>
-                <span class="stat-label">Críticos</span>
-              </div>
-            </div>
-            <div class="stat-card stat-card-warning" id="card-warning">
-              <div class="stat-icon stat-icon-warning">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div class="stat-info">
-                <span class="stat-value" id="stat-warning">0</span>
-                <span class="stat-label">Advertencias</span>
-              </div>
-            </div>
-            <div class="stat-card stat-card-info" id="card-info">
-              <div class="stat-icon stat-icon-info">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fill-rule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div class="stat-info">
-                <span class="stat-value" id="stat-info">0</span>
-                <span class="stat-label">Informativos</span>
-              </div>
-            </div>
+        <!-- Summary Statistics -->
+        <div class="pricing-tier-grid" id="summary-cards">
+          <div class="pricing-tier">
+            <div class="tier-name">Archivos</div>
+            <div class="tier-price" id="stat-files">0</div>
+          </div>
+          <div class="pricing-tier">
+            <div class="tier-name critical-label">Críticos</div>
+            <div class="tier-price critical-value" id="stat-critical">0</div>
+          </div>
+          <div class="pricing-tier">
+            <div class="tier-name warning-label">Advertencias</div>
+            <div class="tier-price warning-value" id="stat-warning">0</div>
+          </div>
+          <div class="pricing-tier">
+            <div class="tier-name info-label">Informativos</div>
+            <div class="tier-price info-value" id="stat-info">0</div>
           </div>
         </div>
 
         <!-- Category Filter Tabs -->
         <div class="filter-bar">
-          <div class="filter-tabs" id="filter-tabs">
-            <button class="filter-tab active" data-filter="all" id="tab-all">
+          <div class="sub-nav-row" id="filter-tabs">
+            <button class="sub-nav-pill active" data-filter="all" id="tab-all">
               Todos
             </button>
-            <button class="filter-tab" data-filter="security" id="tab-security">
+            <button
+              class="sub-nav-pill"
+              data-filter="security"
+              id="tab-security"
+            >
               Seguridad
             </button>
             <button
-              class="filter-tab"
+              class="sub-nav-pill"
               data-filter="complexity"
               id="tab-complexity"
             >
               Complejidad
             </button>
             <button
-              class="filter-tab"
+              class="sub-nav-pill"
               data-filter="legibility"
               id="tab-legibility"
             >
               Legibilidad
             </button>
             <button
-              class="filter-tab"
+              class="sub-nav-pill"
               data-filter="dead_code"
               id="tab-dead_code"
             >
               Código Muerto
             </button>
-            <button class="filter-tab" data-filter="style" id="tab-style">
+            <button class="sub-nav-pill" data-filter="style" id="tab-style">
               Estilo
             </button>
           </div>
-          <div class="filter-search">
-            <svg viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                clip-rule="evenodd"
-              />
-            </svg>
+          <div class="text-input-wrapper">
             <input
               type="text"
+              class="text-input"
               id="search-input"
               placeholder="Buscar anomalía..."
             />
@@ -339,7 +191,9 @@
 
     <!-- ── FOOTER ───────────────────────────────────────────────────────── -->
     <footer class="footer">
-      <p>DETECH &mdash; Herramienta de análisis estático de código Python</p>
+      <div class="footer-content">
+        <p>DETECH &mdash; Herramienta de análisis estático de código Python</p>
+      </div>
     </footer>
 
     <script src="/static/js/app.js"></script>

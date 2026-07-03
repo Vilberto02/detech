@@ -34,7 +34,17 @@ const els = {
   exportHtmlBtn: $("export-html-btn"),
   exportPdfBtn: $("export-pdf-btn"),
   newAnalysisBtn: $("new-analysis-btn"),
+
+  // Theme Toggle
+  themeToggle: $("theme-toggle"),
 };
+
+// Toggle de Tema Oscuro
+if (els.themeToggle) {
+  els.themeToggle.addEventListener("click", () => {
+    document.documentElement.classList.toggle("dark");
+  });
+}
 
 // Drag & Drop
 ["dragenter", "dragover", "dragleave", "drop"].forEach((ev) => {
@@ -182,12 +192,6 @@ function renderResults(data) {
   animateCount(els.statWarning, 0, data.summary.warning);
   animateCount(els.statInfo, 0, data.summary.info);
 
-  // Colorear tarjeta crítica si hay críticos
-  $("card-critical").classList.toggle(
-    "stat-card-critical",
-    data.summary.critical > 0,
-  );
-
   // Renderizar archivos
   els.resultsContent.innerHTML = data.files
     .map((f) => renderFileCard(f))
@@ -203,7 +207,7 @@ function renderFileCard(fileData) {
     ${fileData.warning > 0 ? `<span class="badge badge-warning">! ${fileData.warning} advertencia${fileData.warning !== 1 ? "s" : ""}</span>` : ""}
     ${fileData.info > 0 ? `<span class="badge badge-info">ℹ ${fileData.info} info</span>` : ""}
   `
-    : `<span class="badge badge-success">✓ Sin anomalías</span>`;
+    : `<span class="badge badge-success">Sin anomalías</span>`;
 
   const rowsHtml = hasAnomalies
     ? fileData.anomalies
@@ -221,13 +225,12 @@ function renderFileCard(fileData) {
         )
         .join("")
     : `<tr><td colspan="5" class="no-anomalies">
-          <div class="no-anomalies-icon">✅</div>
           <div>No se detectaron anomalías en este archivo</div>
        </td></tr>`;
 
   const tableHtml = `
-    <div class="anomaly-table-wrapper">
-      <table class="anomaly-table">
+    <div class="table-wrapper">
+      <table class="table">
         <thead>
           <tr>
             <th>Línea</th>
@@ -243,16 +246,15 @@ function renderFileCard(fileData) {
   `;
 
   return `
-    <div class="file-result-card">
-      <div class="file-result-header">
-        <div class="file-result-name">
-          <svg viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
-          </svg>
-          ${escapeHtml(fileData.filepath)}
-          <span class="badge badge-neutral" style="margin-left:4px">${fileData.total_lines} líneas</span>
+    <div class="model-card">
+      <div class="model-card-header">
+        <div class="model-card-title">
+          📄 ${escapeHtml(fileData.filepath)}
         </div>
-        <div class="file-badges">${badgesHtml}</div>
+        <div class="model-card-meta">
+          <span class="badge " style="background:var(--surface-bone); color:var(--ink);">${fileData.total_lines} líneas</span>
+          ${badgesHtml}
+        </div>
       </div>
       ${tableHtml}
     </div>
@@ -269,10 +271,10 @@ function severityLabel(s) {
 
 // Filtrado
 els.filterTabs.addEventListener("click", (e) => {
-  const tab = e.target.closest(".filter-tab");
+  const tab = e.target.closest(".sub-nav-pill");
   if (!tab) return;
   document
-    .querySelectorAll(".filter-tab")
+    .querySelectorAll(".sub-nav-pill")
     .forEach((t) => t.classList.remove("active"));
   tab.classList.add("active");
   applyFilters();
@@ -281,7 +283,7 @@ els.filterTabs.addEventListener("click", (e) => {
 els.searchInput.addEventListener("input", applyFilters);
 
 function applyFilters() {
-  const activeTab = document.querySelector(".filter-tab.active");
+  const activeTab = document.querySelector(".sub-nav-pill.active");
   const category = activeTab?.dataset.filter || "all";
   const search = els.searchInput.value.toLowerCase().trim();
 
@@ -364,7 +366,7 @@ els.newAnalysisBtn.addEventListener("click", () => {
   els.resultsContent.innerHTML = "";
   els.searchInput.value = "";
   document
-    .querySelectorAll(".filter-tab")
+    .querySelectorAll(".sub-nav-pill")
     .forEach((t) => t.classList.remove("active"));
   $("tab-all").classList.add("active");
   document
@@ -400,9 +402,9 @@ function showError(msg) {
   const el = document.createElement("div");
   el.style.cssText = `
     position: fixed; bottom: 24px; right: 24px; z-index: 999;
-    background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4);
-    color: #fca5a5; padding: 14px 20px; border-radius: 12px;
-    font-size: 0.88rem; max-width: 360px; backdrop-filter: blur(12px);
+    background: var(--surface-dark); border: 1px solid var(--critical);
+    color: var(--on-dark); padding: 14px 20px; border-radius: var(--rounded-md);
+    font-size: 14px; max-width: 360px;
     animation: slide-in 0.2s ease;
   `;
   el.textContent = msg;

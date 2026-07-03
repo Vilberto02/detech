@@ -12,15 +12,15 @@
 
 ## Stack Tecnológico
 
-| Capa            | Tecnología                 |
-| --------------- | -------------------------- |
-| Backend API     | FastAPI (Python 3.11+)     |
-| Tokenización    | `tokenize` (stdlib) + `re` |
-| Configuración   | YAML (`PyYAML`)            |
-| Plantillas HTML | Jinja2                     |
+| Capa            | Tecnología                    |
+| --------------- | ----------------------------- |
+| Backend API     | FastAPI (Python 3.11+)        |
+| Tokenización    | `tokenize` (stdlib) + `re`    |
+| Configuración   | YAML (`PyYAML`)               |
+| Plantillas HTML | Jinja2                        |
 | Generación PDF  | Impresión Nativa de Navegador |
-| Frontend        | HTML5 + CSS3 + Vanilla JS  |
-| Testing         | pytest + pytest-cov        |
+| Frontend        | HTML5 + CSS3 + Vanilla JS     |
+| Testing         | pytest + pytest-cov           |
 
 ## Instalación
 
@@ -65,3 +65,11 @@ detech/
 ├── detech.yaml              # Archivo donde customizas reglas y umbrales
 └── pyproject.toml           # Configuración de empaquetado del proyecto
 ```
+
+## Mockups
+
+Vista inicial de la herramienta.
+![Inicio](docs/home.png)
+
+Resultados del analisis de un archivo `.py`
+![Resultados](docs/resultados.png)
