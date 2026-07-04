@@ -1,5 +1,3 @@
-// Ejemplo de código JavaScript con anomalías críticas para DETECH
-
 const express = require('express');
 const app = express();
 

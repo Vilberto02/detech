@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fs::File; // Import no usado (Código Muerto)
+use std::fs::File;
 
 // camelCase en Rust que usa snake_case (Estilo)
 fn processData() {

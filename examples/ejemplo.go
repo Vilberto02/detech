@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "os" // Import no usado (Código Muerto)
+    "os"
 )
 
 // SEC001: Credenciales hardcodeadas (CRÍTICO)
@@ -10,7 +10,7 @@ var token = "ghp_1234567890abcdefGHIJKLMNOPQRSTUVWXYZ"
 var private_key = "BEGIN RSA PRIVATE KEY..."
 
 func main() {
-    x := 10 // Nombre corto (Legibilidad)
+    x := 10
     if x > 5 {
         fmt.Println("Mayor a 5")
     } else {
