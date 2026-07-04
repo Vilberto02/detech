@@ -6,7 +6,7 @@ Tests para el Tokenizer de DETECH.
 import pytest
 from pathlib import Path
 
-from app.core.tokenizer import tokenize_source, get_lines, NAME_TOKEN, COMMENT_TOKEN
+from app.core.tokenizer import tokenize_source, get_lines, NAME_TOKEN, COMMENT_TOKEN, KEYWORD_TOKEN
 
 
 SIMPLE_CODE = '''
@@ -25,14 +25,15 @@ def test_tokenize_returns_tokens():
 
 
 def test_tokenize_finds_def():
-    tokens = tokenize_source(SIMPLE_CODE)
+    tokens = tokenize_source(SIMPLE_CODE, filepath="test.py")
     names = [t.string for t in tokens if t.type == NAME_TOKEN]
-    assert "def" in names
+    keywords = [t.string for t in tokens if t.type == KEYWORD_TOKEN]
+    assert "def" in keywords
     assert "hola_mundo" in names
 
 
 def test_tokenize_finds_comments():
-    tokens = tokenize_source(SIMPLE_CODE)
+    tokens = tokenize_source(SIMPLE_CODE, filepath="test.py")
     comments = [t for t in tokens if t.type == COMMENT_TOKEN]
     assert len(comments) >= 1
     assert any("comentario" in c.string for c in comments)
