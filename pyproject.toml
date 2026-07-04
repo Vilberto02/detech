@@ -19,6 +19,8 @@ dependencies = [
     "jinja2>=3.1.4",
     "pyyaml>=6.0.1",
     "pygments>=2.18.0",
+    "pygls==1.3.1",
+    "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]
@@ -29,6 +31,7 @@ dev = [
 
 [project.scripts]
 detech-server = "app.main:app"
+detech = "app.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
