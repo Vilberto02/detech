@@ -7,7 +7,7 @@ from typing import List
 
 from .base import BaseDetector
 from ..core.models import Anomaly
-from ..core.tokenizer import Token, NAME_TOKEN, PYTHON_KEYWORDS
+from ..core.tokenizer import Token, NAME_TOKEN, KEYWORD_TOKEN
 
 
 class LegibilityDetector(BaseDetector):
@@ -93,7 +93,7 @@ class LegibilityDetector(BaseDetector):
                     severity="info",
                     message=(
                         f"Línea demasiado larga: {len(line)} caracteres "
-                        f"(máximo: {limit}, PEP 8)."
+                        f"(máximo recomendado: {limit})."
                     ),
                     context=line[:120] + ("..." if len(line) > 120 else ""),
                 ))
@@ -121,10 +121,9 @@ class LegibilityDetector(BaseDetector):
             if tok.type != NAME_TOKEN:
                 continue
             name = tok.string
-            # Ignorar: keywords, nombres permitidos, nombres de 3+ chars
+            # Ignorar: nombres permitidos, nombres de 3+ chars
             if (
-                name in PYTHON_KEYWORDS
-                or name in self.ALLOWED_SHORT_NAMES
+                name in self.ALLOWED_SHORT_NAMES
                 or len(name) > 2
             ):
                 continue
@@ -153,7 +152,7 @@ class LegibilityDetector(BaseDetector):
         i = 0
         while i < len(tokens):
             tok = tokens[i]
-            if tok.type == NAME_TOKEN and tok.string == "def":
+            if tok.type == KEYWORD_TOKEN and tok.string in ("def", "func", "function", "fn"):
                 func_line = tok.line
                 func_name = ""
                 # Nombre de la función

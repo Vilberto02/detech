@@ -70,9 +70,7 @@ els.dropZone.addEventListener("dragleave", () =>
 
 els.dropZone.addEventListener("drop", (e) => {
   els.dropZone.classList.remove("drag-over");
-  const files = Array.from(e.dataTransfer.files).filter((f) =>
-    f.name.endsWith(".py"),
-  );
+  const files = Array.from(e.dataTransfer.files);
   if (files.length) addFiles(files);
 });
 
@@ -87,9 +85,7 @@ els.browseBtn.addEventListener("click", (e) => {
 });
 
 els.fileInput.addEventListener("change", () => {
-  const files = Array.from(els.fileInput.files).filter((f) =>
-    f.name.endsWith(".py"),
-  );
+  const files = Array.from(els.fileInput.files);
   if (files.length) addFiles(files);
   els.fileInput.value = "";
 });
@@ -124,7 +120,7 @@ function renderFileList() {
     .map(
       (f, i) => `
     <div class="file-item" id="file-item-${i}">
-      <div class="file-icon">.py</div>
+      <div class="file-icon">.${escapeHtml(f.name.split('.').pop())}</div>
       <div class="file-info">
         <div class="file-name">${escapeHtml(f.name)}</div>
         <div class="file-size">${formatBytes(f.size)}</div>
@@ -296,41 +292,30 @@ function applyFilters() {
 
 // Exportar reportes
 els.exportHtmlBtn.addEventListener("click", () => exportReport("html"));
-els.exportPdfBtn.addEventListener("click", () => exportReport("pdf"));
+els.exportJsonBtn = $("export-json-btn");
+if (els.exportJsonBtn) {
+  els.exportJsonBtn.addEventListener("click", () => exportReport("json"));
+}
 
 async function exportReport(format) {
   if (!state.reportData) return;
 
-  const btn = format === "html" ? els.exportHtmlBtn : els.exportPdfBtn;
+  const btn = format === "html" ? els.exportHtmlBtn : els.exportJsonBtn;
   const originalText = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = `<span>Generando...</span>`;
 
   try {
-    if (format === "pdf") {
-      // Usar la impresión nativa del navegador para generar el PDF (evita WeasyPrint)
-      const res = await fetch(`/api/report?format=html`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(state.reportData),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const html = await res.text();
-
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.onload = () => {
-          printWindow.focus();
-          printWindow.print();
-        };
-      } else {
-        showError(
-          "Por favor permite las ventanas emergentes (pop-ups) para generar el PDF.",
-        );
-      }
+    if (format === "json") {
+      // Exportación directa a JSON
+      const jsonStr = JSON.stringify(state.reportData, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `detech_report.json`;
+      a.click();
+      URL.revokeObjectURL(url);
     } else {
       // Exportación a HTML como archivo descargable
       const res = await fetch(`/api/report?format=html`, {

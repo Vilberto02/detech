@@ -39,9 +39,6 @@ async def analyze(
     with tempfile.TemporaryDirectory() as tmpdir:
         for upload in files:
             filename = upload.filename or "archivo.py"
-            if not filename.endswith(".py"):
-                continue  # Silenciosamente ignorar no-.py
-
             tmp_path = Path(tmpdir) / filename
             content = await upload.read()
             tmp_path.write_bytes(content)
@@ -62,7 +59,7 @@ async def analyze(
     if not report.files:
         raise HTTPException(
             status_code=400,
-            detail="Ninguno de los archivos subidos es un .py válido.",
+            detail="Ninguno de los archivos subidos es válido.",
         )
 
     _compute_statistics(report)

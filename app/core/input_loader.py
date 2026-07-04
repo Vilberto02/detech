@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 
-SUPPORTED_EXTENSION = ".py"
+
 
 
 def load_file(filepath: str | Path) -> Tuple[str, List[str]]:
@@ -29,11 +29,6 @@ def load_file(filepath: str | Path) -> Tuple[str, List[str]]:
 
     if not path.exists():
         raise FileNotFoundError(f"Archivo no encontrado: {filepath}")
-
-    if path.suffix.lower() != SUPPORTED_EXTENSION:
-        raise ValueError(
-            f"Extensión no soportada '{path.suffix}'. Solo se admiten archivos .py"
-        )
 
     # Intentar detectar encoding — probar UTF-8 primero, luego Latin-1 como fallback
     for encoding in ("utf-8", "latin-1", "cp1252"):
@@ -68,14 +63,14 @@ def load_directory(dirpath: str | Path, recursive: bool = True) -> List[Path]:
     if not path.is_dir():
         raise NotADirectoryError(f"La ruta no es un directorio: {dirpath}")
 
-    pattern = "**/*.py" if recursive else "*.py"
+    pattern = "**/*" if recursive else "*"
     files = sorted(path.glob(pattern))
 
     # Excluir archivos en directorios de entorno virtual o caché
     excluded_dirs = {".venv", "venv", "__pycache__", ".git", "node_modules", ".tox"}
     filtered = [
         f for f in files
-        if not any(part in excluded_dirs for part in f.parts)
+        if f.is_file() and not any(part in excluded_dirs for part in f.parts)
     ]
 
     return filtered
@@ -94,8 +89,6 @@ def collect_targets(path_input: str | Path) -> List[Path]:
     path = Path(path_input)
 
     if path.is_file():
-        if path.suffix.lower() != SUPPORTED_EXTENSION:
-            raise ValueError(f"El archivo '{path}' no tiene extensión .py")
         return [path]
     elif path.is_dir():
         return load_directory(path)

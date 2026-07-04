@@ -58,7 +58,7 @@ class RuleEngine:
         source, lines = load_file(filepath)
 
         # 2. Tokenizar
-        tokens = tokenize_source(source)
+        tokens = tokenize_source(source, filepath)
 
         # 3. Calcular métricas
         metrics = {

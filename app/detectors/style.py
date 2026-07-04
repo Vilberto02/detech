@@ -7,7 +7,7 @@ from typing import List, Set
 
 from .base import BaseDetector
 from ..core.models import Anomaly
-from ..core.tokenizer import Token, NAME_TOKEN, PYTHON_KEYWORDS
+from ..core.tokenizer import Token, NAME_TOKEN, KEYWORD_TOKEN
 
 
 # Patrones de convención de nombres
@@ -71,8 +71,8 @@ class StyleDetector(BaseDetector):
         while i < len(tokens):
             tok = tokens[i]
 
-            # Revisar nombres de funciones (def <nombre>)
-            if tok.type == NAME_TOKEN and tok.string == "def":
+            # Revisar nombres de funciones
+            if tok.type == KEYWORD_TOKEN and tok.string in ("def", "func", "function", "fn"):
                 j = i + 1
                 while j < len(tokens) and tokens[j].string in ("(", ):
                     j += 1
@@ -88,7 +88,7 @@ class StyleDetector(BaseDetector):
                             severity="info",
                             message=(
                                 f"El nombre de función '{name}' usa camelCase. "
-                                "En Python se prefiere snake_case (PEP 8)."
+                                "En algunos lenguajes (ej. Python, Rust) se prefiere snake_case."
                             ),
                             context=tokens[j].line_text.strip(),
                         ))
@@ -99,8 +99,6 @@ class StyleDetector(BaseDetector):
     @staticmethod
     def _is_camel_case_violation(name: str) -> bool:
         """Retorna True si el nombre usa camelCase (violación PEP 8 para funciones)."""
-        if name in PYTHON_KEYWORDS:
-            return False
         if name.startswith("_"):
             name = name.lstrip("_")
         # camelCase: comienza con minúscula pero contiene mayúsculas internas

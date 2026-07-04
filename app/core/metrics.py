@@ -8,6 +8,7 @@ from .tokenizer import (
     Token,
     NAME_TOKEN,
     COMMENT_TOKEN,
+    STRING_TOKEN,
     INDENT_TOKEN,
     DEDENT_TOKEN,
     NL_TOKEN,
@@ -62,13 +63,10 @@ def estimate_cyclomatic_complexity(tokens: List[Token]) -> int:
     """
     Estima la complejidad ciclomática como el conteo de palabras clave de control.
     Valor base = 1 (flujo lineal mínimo).
-
-    Returns:
-        Entero representando la complejidad estimada del archivo completo.
     """
     count = 1  # Complejidad base
     for tok in tokens:
-        if tok.type == NAME_TOKEN and tok.string in CONTROL_FLOW_KEYWORDS:
+        if tok.type in (NAME_TOKEN, "KEYWORD") and tok.string in CONTROL_FLOW_KEYWORDS:
             count += 1
     return count
 
@@ -151,27 +149,33 @@ def get_function_metrics(tokens: List[Token], lines: List[str]) -> List[Dict]:
 def count_imports(tokens: List[Token]) -> List[Dict]:
     """
     Detecta declaraciones import y from...import en el código.
-
-    Returns:
-        Lista de dicts con: module, line.
     """
     imports = []
     i = 0
+    import_keywords = {"import", "from", "require", "include", "use"}
     while i < len(tokens):
         tok = tokens[i]
-        if tok.type == NAME_TOKEN and tok.string in ("import", "from"):
+        if tok.type in (NAME_TOKEN, "KEYWORD") and tok.string in import_keywords:
             module_parts = []
             j = i + 1
-            while j < len(tokens) and tokens[j].type == NAME_TOKEN:
-                module_parts.append(tokens[j].string)
-                j += 1
-                # Saltar puntos (from os.path import ...)
-                if j < len(tokens) and tokens[j].string == ".":
+            while j < len(tokens):
+                t_j = tokens[j]
+                if t_j.type in (NAME_TOKEN, STRING_TOKEN, "WHITESPACE"):
+                    if t_j.type != "WHITESPACE":
+                        # Strip quotes if string
+                        mod = t_j.string.strip('"\'')
+                        module_parts.append(mod)
                     j += 1
-            imports.append({
-                "module": ".".join(module_parts),
-                "line": tok.line,
-                "kind": tok.string,  # "import" o "from"
-            })
+                elif t_j.string in (".", "/", "\\"):
+                    j += 1
+                else:
+                    break
+            if module_parts:
+                imports.append({
+                    "module": ".".join(module_parts),
+                    "line": tok.line,
+                    "kind": tok.string,
+                })
+            i = j - 1
         i += 1
     return imports
