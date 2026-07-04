@@ -47,7 +47,18 @@ Inicia el servidor backend (FastAPI):
 uvicorn app.main:app --reload
 ```
 
-Abre tu navegador en [http://localhost:8000](http://localhost:8000) para acceder a la interfaz. Sube archivos `.py` para obtener resultados.
+Abre tu navegador en [http://localhost:8000](http://localhost:8000) para acceder a la interfaz. 
+Puedes subir archivos de código fuente en diversos lenguajes (`.py`, `.js`, `.go`, `.rs`, etc.) y obtener resultados.
+Ahora también puedes exportar el reporte en formato `JSON` directamente desde la interfaz.
+
+## Ejemplos con Problemas Críticos
+
+Dentro del directorio `examples/` encontrarás archivos de prueba (`ejemplo.js`, `ejemplo.go`, `ejemplo.rs`) que contienen anomalías de distintos niveles, incluyendo problemas **Críticos** de seguridad como:
+- Credenciales y tokens hardcodeados (`SEC001`)
+- Funciones peligrosas como `eval` (`SEC002`)
+- Inyección SQL por concatenación (`SEC003`)
+
+Puedes subir estos archivos a la interfaz para verificar el funcionamiento de las reglas de seguridad.
 
 ## Estructura del Proyecto
 

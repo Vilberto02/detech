@@ -2,14 +2,14 @@
 
 ## 1. Visión General y Arquitectura
 
-**DETECH** es una herramienta de soporte para programadores enfocada en el análisis estático de código Python. Su principal objetivo es detectar _anomalías_ (problemas de legibilidad, complejidad excesiva, seguridad, estilo o código muerto) sin necesidad de ejecutar el programa.
+**DETECH** es una herramienta de soporte para programadores enfocada en el análisis estático de código fuente multilenguaje (Python, JavaScript, Go, Rust, entre otros). Su principal objetivo es detectar _anomalías_ (problemas de legibilidad, complejidad excesiva, seguridad, estilo o código muerto) sin necesidad de ejecutar el programa.
 
 ### Diagrama de arquitectura
 
 ```mermaid
 graph TD
     %% Componentes Principales
-    User([Usuario]) -->|Sube archivos .py| Frontend[Frontend Web<br/>HTML/CSS/JS]
+    User([Usuario]) -->|Sube archivos de código| Frontend[Frontend Web<br/>HTML/CSS/JS]
     Frontend -->|POST /api/analyze| API[FastAPI Endpoint]
 
     API -->|Carga de archivos| Loader[Input Loader]
@@ -20,7 +20,7 @@ graph TD
     ConfigMgr -.-> Engine
 
     %% Flujo del Engine
-    Engine --> Tokenizer[Tokenizer<br/>stdlib 'tokenize']
+    Engine --> Tokenizer[Tokenizer<br/>Pygments]
     Tokenizer --> Metrics[Metrics Extractor]
 
     %% Detectores (Patrón Strategy)
@@ -39,17 +39,15 @@ graph TD
     DetCustom --> Aggregator
 
     Aggregator -->|JSON Response| Frontend
-    Aggregator -->|Exportar| ReportGen[Report Generator<br/>Jinja2]
-    ReportGen -->|HTML| User
-    User -.->|Browser Print| PDF[PDF generado]
+    Frontend -->|Descarga| JSON[Reporte JSON exportado]
 ```
 
 ## 2. Ciclo de Vida del Análisis
 
 ### Paso a paso:
 
-1. **Carga y lectura**: El módulo `input_loader.py` lee el archivo `.py` y lo divide en líneas.
-2. **Tokenización léxica**: En lugar de utilizar un parser AST (Abstract Syntax Tree), que fallaría inmediatamente si el código tiene errores de sintaxis parciales, utilizamos el módulo `tokenize` de la librería estándar de Python para extraer "piezas" de código (palabras, comentarios, strings) incluso si la gramática está rota.
+1. **Carga y lectura**: El módulo `input_loader.py` lee el archivo de código y lo divide en líneas, aceptando cualquier extensión válida.
+2. **Tokenización léxica**: En lugar de utilizar un parser AST (Abstract Syntax Tree) que fallaría si el código tiene errores de sintaxis y estaría limitado a un solo lenguaje, utilizamos **Pygments** para inferir dinámicamente el lenguaje y extraer un flujo de tokens estandarizado (palabras clave, nombres, strings, comentarios).
 3. **Cálculo de métricas (`metrics.py`)**: Se calculan valores globales del archivo, como las Líneas de Código (LOC), la profundidad máxima de anidamiento (`if` dentro de `if`) y la Complejidad Ciclomática estimada.
 4. **Ejecución de detectores (Patrón Strategy)**: El `RuleEngine` orquesta un conjunto de "Detectores" (clases que heredan de `BaseDetector`). A cada detector se le pasan las líneas, los tokens y las métricas. Cada uno devuelve una lista de anomalías.
 5. **Reglas personalizadas (`custom_patterns`)**: Luego, el motor aplica expresiones regulares definidas por el usuario en `detech.yaml` sobre las líneas del código.
@@ -57,9 +55,10 @@ graph TD
 
 ## 3. Decisiones de Diseño
 
-### ¿Por qué `tokenize` y no `ast`?
+### ¿Por qué Pygments y métricas heurísticas?
 
-El módulo `ast` de Python construye un árbol gramatical perfecto. La desventaja es que si al programador le falta un paréntesis de cierre, el analizador falla y no puede inspeccionar nada del archivo. Usando `tokenize` y expresiones regulares, se prioriza la tolerancia a fallos, ya que escanea todo lo que puede y reporta métricas heurísticas que ayudan al programador, pese a que el estado del código este incompleto.
+Originalmente se podría usar un módulo AST para un lenguaje específico (ej. `ast` de Python), el cual construye un árbol gramatical perfecto. La desventaja es que si al programador le falta un paréntesis, el analizador falla. Además, los ASTs no son compatibles entre diferentes lenguajes. 
+Al usar **Pygments** como motor de análisis léxico transversal, priorizamos la tolerancia a fallos y la adaptabilidad multilenguaje. El sistema mapea cualquier lenguaje soportado por Pygments a un conjunto base de tokens abstractos (`Token`), y las reglas de detección buscan patrones agnósticos (ej. delimitadores de bloque, palabras clave universales de importación o condicionales) para emitir métricas muy precisas.
 
 ### Patrón Strategy para detectores
 
