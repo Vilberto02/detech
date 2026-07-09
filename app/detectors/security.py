@@ -15,11 +15,16 @@ _CREDENTIAL_PATTERN = re.compile(
     r"""(?i)(password|passwd|secret|api_key|apikey|token|auth_token|access_token|private_key)\s*=\s*['"][^'"]{3,}['"]"""
 )
 
-# Funciones consideradas peligrosas en Python
-_DANGEROUS_FUNCTIONS = frozenset({
-    "eval", "exec", "compile", "__import__",
-    "execfile", "input",   # input() en Python 2 era equivalente a eval
-})
+# Funciones peligrosas en Python, con su severidad.
+# compile() no ejecuta código por sí mismo (solo genera el objeto código),
+# pero su uso sobre entrada no confiable suele preceder a exec/eval.
+_DANGEROUS_FUNCTIONS = {
+    "eval": "critical",
+    "exec": "critical",
+    "execfile": "critical",
+    "__import__": "critical",
+    "compile": "warning",
+}
 
 # Patrones de concatenación directa en SQL
 _SQL_CONCAT_PATTERNS = [
@@ -89,16 +94,24 @@ class SecurityDetector(BaseDetector):
             if tok.string in _DANGEROUS_FUNCTIONS and tok.type == "NAME":
                 # Verificar que el siguiente token sea '(' (llamada a función)
                 if i + 1 < len(tokens) and tokens[i + 1].string == "(":
+                    severity = _DANGEROUS_FUNCTIONS[tok.string]
+                    if tok.string == "compile":
+                        message = (
+                            "Uso de 'compile()': genera objetos de código. "
+                            "Verifica que la fuente no provenga de entrada no confiable."
+                        )
+                    else:
+                        message = (
+                            f"Uso de función peligrosa: '{tok.string}()'."
+                            " Esta función puede ejecutar código arbitrario."
+                        )
                     anomalies.append(Anomaly(
                         file=filepath,
                         line=tok.line,
                         rule_id="SEC002",
                         category=self.category,
-                        severity="critical",
-                        message=(
-                            f"Uso de función peligrosa: '{tok.string}()'."
-                            " Esta función puede ejecutar código arbitrario."
-                        ),
+                        severity=severity,
+                        message=message,
                         context=tok.line_text.strip(),
                     ))
             i += 1
