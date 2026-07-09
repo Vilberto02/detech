@@ -54,6 +54,23 @@ def test_detecta_password_simple():
     assert len(found) == 1
 
 
+def test_constantes_no_son_credenciales():
+    # Dogfooding: NAME_TOKEN = "NAME" no es una credencial; el valor es
+    # una palabra corta puramente alfabética (sin dígitos ni símbolos)
+    src = 'NAME_TOKEN = "NAME"\nCOMMENT_TOKEN = "COMMENT"\n'
+    assert _by_rule(_detect(src), "SEC001") == []
+
+
+def test_valor_corto_con_digitos_si_es_credencial():
+    found = _by_rule(_detect('token = "ab12cd"\n'), "SEC001")
+    assert len(found) == 1
+
+
+def test_valor_alfabetico_largo_si_es_credencial():
+    found = _by_rule(_detect('password = "supersecretlarga"\n'), "SEC001")
+    assert len(found) == 1
+
+
 # ---------------------------------------------------------------------------
 # SEC003 — inyección SQL
 # ---------------------------------------------------------------------------

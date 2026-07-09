@@ -14,8 +14,17 @@ from ..core.tokenizer import Token
 # secret_key va antes que secret para que el motor prefiera el match largo
 # (cubre variantes como aws_secret_key = "...").
 _CREDENTIAL_PATTERN = re.compile(
-    r"""(?i)(password|passwd|secret_key|secret|api_key|apikey|token|auth_token|access_token|private_key)\s*=\s*['"][^'"]{3,}['"]"""
+    r"""(?i)(password|passwd|secret_key|secret|api_key|apikey|token|auth_token|access_token|private_key)\s*=\s*['"]([^'"]{3,})['"]"""
 )
+
+
+def _is_plausible_credential(value: str) -> bool:
+    """
+    Filtro de plausibilidad: una palabra corta puramente alfabética
+    (ej. "NAME" en NAME_TOKEN = "NAME") no es un secreto; las credenciales
+    reales suelen ser largas o contener dígitos/símbolos.
+    """
+    return len(value) >= 8 or not value.isalpha()
 
 # Funciones peligrosas en Python, con su severidad.
 # compile() no ejecuta código por sí mismo (solo genera el objeto código),
@@ -68,7 +77,7 @@ class SecurityDetector(BaseDetector):
             if stripped.startswith("#"):
                 continue
             match = _CREDENTIAL_PATTERN.search(line)
-            if match:
+            if match and _is_plausible_credential(match.group(2)):
                 # Ocultar el valor real en el contexto mostrado
                 safe_context = re.sub(
                     r"""(['"][^'"]{3,}['"])""",
