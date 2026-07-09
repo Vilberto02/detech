@@ -88,6 +88,59 @@ def test_filtro_no_suprime_token_con_prefijo_ghp():
 
 
 # ---------------------------------------------------------------------------
+# SEC001 — contexto léxico (máscaras de comentario/string)
+# ---------------------------------------------------------------------------
+
+def test_credencial_en_comentario_python_no_reporta():
+    assert _by_rule(_detect('# password = "abc12345"\n'), "SEC001") == []
+
+
+def test_credencial_en_comentario_js_no_reporta():
+    # El filtro anterior solo reconocía '#'; los comentarios // pasaban
+    assert _by_rule(_detect('// api_key = "xyz12345"\n', "t.js"), "SEC001") == []
+
+
+def test_credencial_en_comentario_al_final_de_linea_no_reporta():
+    assert _by_rule(_detect('x = 1  # password = "abc123"\n'), "SEC001") == []
+
+
+def test_credencial_dentro_de_docstring_no_reporta():
+    src = '"""Ejemplo de uso:\n    password = "abc123"\n"""\n'
+    assert _by_rule(_detect(src), "SEC001") == []
+
+
+def test_credencial_en_codigo_con_comentario_al_lado_si_reporta():
+    found = _by_rule(_detect('password = "abc123"  # credencial real\n'), "SEC001")
+    assert len(found) == 1
+
+
+# ---------------------------------------------------------------------------
+# SEC003 — contexto léxico
+# ---------------------------------------------------------------------------
+
+def test_sql_en_comentario_python_no_reporta():
+    src = '# query = "SELECT * FROM users WHERE id=" + uid\n'
+    assert _by_rule(_detect(src), "SEC003") == []
+
+
+def test_sql_en_comentario_js_no_reporta():
+    src = '// query = "SELECT * FROM users WHERE id=" + uid;\n'
+    assert _by_rule(_detect(src, "t.js"), "SEC003") == []
+
+
+def test_string_sql_inofensivo_no_reporta():
+    assert _by_rule(_detect('q = "SELECT * FROM users"\n'), "SEC003") == []
+
+
+def test_sql_con_formato_dentro_de_string_sigue_reportandose():
+    # sprintf al estilo C: el %s vulnerable vive DENTRO del literal. Por eso
+    # SEC003 solo descarta contexto comentario, nunca contexto string.
+    src = 'sprintf(query, "SELECT * FROM t WHERE id = \'%s\'", buf);\n'
+    found = _by_rule(_detect(src, "t.c"), "SEC003")
+    assert len(found) == 1
+
+
+# ---------------------------------------------------------------------------
 # SEC003 — inyección SQL
 # ---------------------------------------------------------------------------
 

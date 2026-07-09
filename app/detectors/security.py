@@ -7,7 +7,7 @@ from typing import List
 
 from .base import BaseDetector
 from ..core.models import Anomaly
-from ..core.tokenizer import Token
+from ..core.tokenizer import Token, build_line_masks, get_span_context
 
 
 # Patrones de credenciales hardcodeadas.
@@ -55,47 +55,50 @@ class SecurityDetector(BaseDetector):
 
     def detect(self, filepath, lines, tokens, metrics) -> List[Anomaly]:
         anomalies = []
+        masks = build_line_masks(tokens)
 
         if self.is_enabled("hardcoded_credentials"):
-            anomalies.extend(self._check_credentials(filepath, lines))
+            anomalies.extend(self._check_credentials(filepath, lines, masks))
 
         if self.is_enabled("dangerous_functions"):
             anomalies.extend(self._check_dangerous_functions(filepath, tokens))
 
         if self.is_enabled("sql_concatenation"):
-            anomalies.extend(self._check_sql_concatenation(filepath, lines))
+            anomalies.extend(self._check_sql_concatenation(filepath, lines, masks))
 
         return anomalies
 
 
-    def _check_credentials(self, filepath, lines) -> List[Anomaly]:
+    def _check_credentials(self, filepath, lines, masks) -> List[Anomaly]:
         """Detecta credenciales o claves hardcodeadas en el código."""
         anomalies = []
         for i, line in enumerate(lines, start=1):
-            # Ignorar líneas que son solo comentarios
-            stripped = line.strip()
-            if stripped.startswith("#"):
-                continue
             match = _CREDENTIAL_PATTERN.search(line)
-            if match and _is_plausible_credential(match.group(2)):
-                # Ocultar el valor real en el contexto mostrado
-                safe_context = re.sub(
-                    r"""(['"][^'"]{3,}['"])""",
-                    '"***"',
-                    line.strip(),
-                )
-                anomalies.append(Anomaly(
-                    file=filepath,
-                    line=i,
-                    rule_id="SEC001",
-                    category=self.category,
-                    severity="critical",
-                    message=(
-                        f"Posible credencial hardcodeada detectada: '{match.group(1)}'."
-                        " Usa variables de entorno o un gestor de secretos."
-                    ),
-                    context=safe_context,
-                ))
+            if not match or not _is_plausible_credential(match.group(2)):
+                continue
+            # Una asignación viva cruza código y string (nombre = "valor");
+            # si el match cae completo dentro de un comentario o de un
+            # string (docstring, texto de ejemplo), no es una credencial.
+            if get_span_context(masks, i, match.start(), match.end()) != "code":
+                continue
+            # Ocultar el valor real en el contexto mostrado
+            safe_context = re.sub(
+                r"""(['"][^'"]{3,}['"])""",
+                '"***"',
+                line.strip(),
+            )
+            anomalies.append(Anomaly(
+                file=filepath,
+                line=i,
+                rule_id="SEC001",
+                category=self.category,
+                severity="critical",
+                message=(
+                    f"Posible credencial hardcodeada detectada: '{match.group(1)}'."
+                    " Usa variables de entorno o un gestor de secretos."
+                ),
+                context=safe_context,
+            ))
         return anomalies
 
     def _check_dangerous_functions(self, filepath, tokens) -> List[Anomaly]:
@@ -130,26 +133,31 @@ class SecurityDetector(BaseDetector):
             i += 1
         return anomalies
 
-    def _check_sql_concatenation(self, filepath, lines) -> List[Anomaly]:
+    def _check_sql_concatenation(self, filepath, lines, masks) -> List[Anomaly]:
         """Detecta posibles inyecciones SQL por concatenación directa."""
         anomalies = []
         for i, line in enumerate(lines, start=1):
             stripped = line.strip()
-            if stripped.startswith("#"):
-                continue
             for pattern in _SQL_CONCAT_PATTERNS:
-                if pattern.search(line):
-                    anomalies.append(Anomaly(
-                        file=filepath,
-                        line=i,
-                        rule_id="SEC003",
-                        category=self.category,
-                        severity="critical",
-                        message=(
-                            "Posible SQL Injection: consulta SQL construida por concatenación "
-                            "o interpolación de strings. Usa consultas parametrizadas."
-                        ),
-                        context=stripped[:120],
-                    ))
-                    break  # Un reporte por línea es suficiente
+                match = pattern.search(line)
+                if match is None:
+                    continue
+                # Solo se descarta contexto comentario. Una inyección real
+                # puede vivir íntegra dentro del literal (sprintf con %s,
+                # f-strings interpoladas), así que el string no exonera.
+                if get_span_context(masks, i, match.start(), match.end()) == "comment":
+                    continue
+                anomalies.append(Anomaly(
+                    file=filepath,
+                    line=i,
+                    rule_id="SEC003",
+                    category=self.category,
+                    severity="critical",
+                    message=(
+                        "Posible SQL Injection: consulta SQL construida por concatenación "
+                        "o interpolación de strings. Usa consultas parametrizadas."
+                    ),
+                    context=stripped[:120],
+                ))
+                break  # Un reporte por línea es suficiente
         return anomalies
