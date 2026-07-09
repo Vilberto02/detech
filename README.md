@@ -1,10 +1,10 @@
-# DETECH — Análisis de Anomalías en Código Python
+# DETECH — Análisis de Anomalías en Código Fuente
 
-**DETECH** es una herramienta de análisis estático rápido diseñada para ayudar a los desarrolladores a identificar problemas de legibilidad, complejidad, código muerto y posibles fallos de seguridad en sus programas de Python, sin necesidad de ejecutar el código.
+**DETECH** es una herramienta de análisis estático rápido diseñada para ayudar a los desarrolladores a identificar problemas de legibilidad, complejidad, código muerto y posibles fallos de seguridad en sus programas, sin necesidad de ejecutar el código. Analiza múltiples lenguajes (`.py`, `.js`, `.go`, `.rs`, `.c`, entre otros) gracias a su enfoque puramente léxico.
 
 ## Características Principales
 
-- **Resiliente a errores de sintaxis:** Utiliza el módulo `tokenize` en lugar de un parser de árbol abstracto (AST), permitiendo escanear archivos incluso si están incompletos o en proceso de escritura.
+- **Resiliente a errores de sintaxis:** Utiliza tokenización léxica con **Pygments** en lugar de un parser de árbol abstracto (AST), permitiendo escanear archivos incluso si están incompletos o en proceso de escritura, y en cualquier lenguaje soportado por el lexer.
 - **5 Categorías de detección:** Legibilidad, Complejidad, Seguridad, Estilo y Código Muerto.
 - **Reglas personalizables:** Puedes añadir tus propias reglas usando expresiones regulares en el archivo de configuración `detech.yaml`.
 - **UI:** Utiliza un sistema Drag & Drop, modo oscuro, vista de resultados con filtros y métricas por batch.
@@ -15,7 +15,7 @@
 | Capa            | Tecnología                    |
 | --------------- | ----------------------------- |
 | Backend API     | FastAPI (Python 3.11+)        |
-| Tokenización    | `tokenize` (stdlib) + `re`    |
+| Tokenización    | Pygments + `re`               |
 | Configuración   | YAML (`PyYAML`)               |
 | Plantillas HTML | Jinja2                        |
 | Generación PDF  | Impresión Nativa de Navegador |

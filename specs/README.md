@@ -2,7 +2,7 @@
 
 ## Descripción General
 
-**DETECH** es una herramienta de soporte al programador para la detección estática de anomalías en código fuente Python. Su objetivo es minimizar las posibles anomalías mediante el análisis del texto del archivo fuente, sin requerir ejecución del programa ni construcción de un árbol sintáctico formal.
+**DETECH** es una herramienta de soporte al programador para la detección estática de anomalías en código fuente. El diseño original contemplaba solo Python; la implementación actual es multilenguaje (Python, JavaScript, Go, Rust, C, entre otros). Su objetivo es minimizar las posibles anomalías mediante el análisis del texto del archivo fuente, sin requerir ejecución del programa ni construcción de un árbol sintáctico formal.
 
 La herramienta expone una **interfaz web** desde la cual el programador puede subir uno o varios archivos (o directorios completos), configurar los umbrales y reglas de análisis, y descargar un reporte en formato **HTML o PDF**.
 
@@ -20,13 +20,13 @@ Diseñar e implementar una herramienta de soporte al programador que permita det
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Sin análisis sintáctico formal      | No se construirá ni utilizará un árbol sintáctico abstracto (AST) ni un parser de gramática formal. El análisis se realiza mediante tokenización léxica y heurísticas. |
 | Sin análisis en tiempo de ejecución | El sistema no ejecuta el programa bajo ninguna circunstancia. Todo el análisis es puramente estático.                                                                  |
-| Entrada por archivo                 | El código fuente se provee como archivo(s) de texto plano `.py`. El sistema puede procesar un archivo individual o un directorio completo (batch).                     |
+| Entrada por archivo                 | El código fuente se provee como archivo(s) de texto plano en disco. El sistema puede procesar un archivo individual o un directorio completo (batch).                  |
 
 ## Decisiones de Diseño
 
 | Aspecto                     | Decisión                                                        |
 | --------------------------- | --------------------------------------------------------------- |
-| **Lenguaje objetivo**       | Python (enfoque inicial)                                        |
+| **Lenguaje objetivo**       | Multilenguaje vía Pygments (Python como enfoque inicial)        |
 | **Interfaz de usuario**     | Interfaz Web (HTML + CSS + JS, backend FastAPI)                 |
 | **Formatos de reporte**     | HTML y PDF (exportables)                                        |
 | **Severidad de anomalías**  | Tres niveles: **Crítico**, **Advertencia**, **Informativo**     |
@@ -38,13 +38,13 @@ Diseñar e implementar una herramienta de soporte al programador que permita det
 
 El motor de DETECH opera en los siguientes niveles de análisis, respetando las restricciones definidas:
 
-1. **Análisis Léxico (Tokenización)**: Uso del módulo `tokenize` de la biblioteca estándar de Python, complementado con expresiones regulares para patrones adicionales. No constituye un parser sintáctico formal, sino un descompositor de tokens.
+1. **Análisis Léxico (Tokenización)**: Uso de **Pygments** para inferir el lenguaje y descomponer el código en un flujo de tokens unificado, complementado con expresiones regulares para patrones adicionales. (El diseño original proponía el módulo `tokenize` de la stdlib, limitado a Python; se reemplazó para soportar múltiples lenguajes.) No constituye un parser sintáctico formal, sino un descompositor de tokens.
 
 2. **Análisis Heurístico**: Aplicación de reglas configurables sobre los tokens y la estructura textual del código para identificar anomalías conocidas. Cada regla puede ser activada o desactivada individualmente.
 
 3. **Análisis Métrico**: Cálculo de métricas cuantitativas del código (líneas de código, complejidad ciclomática estimada, profundidad de anidamiento, número de parámetros) para detectar valores fuera del umbral configurado.
 
-4. **Análisis Estadístico** _(fase futura)_: Detección de valores atípicos (outliers) comparando métricas entre múltiples archivos del mismo proyecto en procesamiento por lotes.
+4. **Análisis Estadístico** _(no implementado — fase futura)_: Detección de valores atípicos (outliers) comparando métricas entre múltiples archivos del mismo proyecto en procesamiento por lotes.
 
 ## Categorías de Anomalías
 
@@ -73,7 +73,7 @@ El motor de DETECH opera en los siguientes niveles de análisis, respetando las 
 | Anomalía                                               | Severidad   |
 | ------------------------------------------------------ | ----------- |
 | Bloques de código comentado (lógica desactivada)       | Advertencia |
-| Variable declarada sin uso posterior                   | Advertencia |
+| Variable declarada sin uso posterior _(no implementado)_ | Advertencia |
 | Import sin referencia en el archivo                    | Advertencia |
 | Anotaciones pendientes: `TODO`, `FIXME`, `HACK`, `XXX` | Informativo |
 
@@ -91,7 +91,7 @@ El motor de DETECH opera en los siguientes niveles de análisis, respetando las 
 | ------------------------------------------------------- | ----------- |
 | Convención de nombres inconsistente (mezcla de estilos) | Informativo |
 | Archivo sin docstring de módulo                         | Informativo |
-| Código duplicado (bloques de alta similitud léxica)     | Advertencia |
+| Código duplicado (bloques de alta similitud léxica) _(no implementado)_ | Advertencia |
 
 ## Patrones Personalizados
 
@@ -107,19 +107,19 @@ El usuario puede definir reglas adicionales en `detech.yaml` bajo la clave `cust
 
 | Módulo                 | Rol                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------- |
-| `InputLoader`          | Carga de archivos `.py` individuales o directorios (batch), detección de encoding     |
-| `Tokenizer`            | Tokenización léxica via `tokenize` stdlib + regex auxiliares                          |
+| `InputLoader`          | Carga de archivos individuales o directorios (batch), detección de encoding           |
+| `Tokenizer`            | Tokenización léxica via Pygments + regex auxiliares                                   |
 | `MetricsCalculator`    | Cálculo de métricas: LOC, complejidad estimada, anidamiento, parámetros               |
 | `RuleEngine`           | Registro y orquestación de detectores (patrón Strategy + Plugin)                      |
 | `AnomalyDetector` (×5) | Un detector por categoría: Legibilidad, Complejidad, Código Muerto, Seguridad, Estilo |
 | `ConfigManager`        | Lectura/escritura de `detech.yaml` con umbrales y reglas activas                      |
-| `ReportGenerator`      | Genera reportes HTML (Jinja2) y PDF (WeasyPrint)                                      |
+| `ReportGenerator`      | Genera reportes HTML (Jinja2); el PDF se exporta con la impresión nativa del navegador |
 
 ## Entradas y Salidas
 
 ### Entradas
 
-- Archivo(s) de código fuente `.py` o directorio completo (batch)
+- Archivo(s) de código fuente o directorio completo (batch)
 - Archivo de configuración `detech.yaml` (umbrales, reglas activas, patrones personalizados)
 
 ### Salidas
@@ -137,9 +137,9 @@ El usuario puede definir reglas adicionales en `detech.yaml` bajo la clave `cust
 | Capa            | Tecnología                 |
 | --------------- | -------------------------- |
 | Backend API     | FastAPI (Python 3.11+)     |
-| Tokenización    | `tokenize` (stdlib) + `re` |
+| Tokenización    | Pygments + `re`            |
 | Configuración   | YAML (`PyYAML`)            |
 | Plantillas HTML | Jinja2                     |
-| Generación PDF  | WeasyPrint                 |
+| Generación PDF  | Impresión nativa del navegador |
 | Frontend        | HTML5 + CSS3 + Vanilla JS  |
 | Testing         | pytest + pytest-cov        |
