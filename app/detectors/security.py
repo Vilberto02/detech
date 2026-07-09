@@ -14,7 +14,7 @@ from ..core.tokenizer import Token, build_line_masks, get_span_context
 # secret_key va antes que secret para que el motor prefiera el match largo
 # (cubre variantes como aws_secret_key = "...").
 _CREDENTIAL_PATTERN = re.compile(
-    r"""(?i)(password|passwd|secret_key|secret|api_key|apikey|token|auth_token|access_token|private_key)\s*=\s*['"]([^'"]{3,})['"]"""
+    r"""(?i)(password|passwd|secret_key|secret|api_key|apikey|token|auth_token|access_token|private_key)\s*=\s*['"]([^'"]{2,})['"]"""
 )
 
 
@@ -83,7 +83,7 @@ class SecurityDetector(BaseDetector):
                 continue
             # Ocultar el valor real en el contexto mostrado
             safe_context = re.sub(
-                r"""(['"][^'"]{3,}['"])""",
+                r"""(['"][^'"]{2,}['"])""",
                 '"***"',
                 line.strip(),
             )

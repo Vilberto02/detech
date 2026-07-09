@@ -83,6 +83,13 @@ def test_token_simple_con_digitos_es_credencial():
     assert len(found) == 1
 
 
+def test_valor_de_dos_caracteres_es_credencial():
+    # Un placeholder corto ("x1") sigue siendo una credencial hardcodeada
+    found = _by_rule(_detect('self.password = "x1"\n'), "SEC001")
+    assert len(found) == 1
+    assert '"***"' in found[0].context
+
+
 def test_valor_corto_con_digitos_si_es_credencial():
     found = _by_rule(_detect('token = "ab12cd"\n'), "SEC001")
     assert len(found) == 1
