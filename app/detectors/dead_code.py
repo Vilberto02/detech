@@ -7,7 +7,15 @@ from typing import List, Set
 
 from .base import BaseDetector
 from ..core.models import Anomaly
-from ..core.tokenizer import Token, NAME_TOKEN, COMMENT_TOKEN, STRING_TOKEN, is_commented_code_line
+from ..core.tokenizer import (
+    Token,
+    NAME_TOKEN,
+    COMMENT_TOKEN,
+    STRING_TOKEN,
+    build_line_masks,
+    get_span_context,
+    is_commented_code_line,
+)
 
 
 # Anotaciones técnicas pendientes
@@ -21,12 +29,13 @@ class DeadCodeDetector(BaseDetector):
 
     def detect(self, filepath, lines, tokens, metrics) -> List[Anomaly]:
         anomalies = []
+        masks = build_line_masks(tokens)
 
         if self.is_enabled("pending_annotations"):
-            anomalies.extend(self._check_annotations(filepath, lines))
+            anomalies.extend(self._check_annotations(filepath, lines, masks))
 
         if self.is_enabled("commented_code"):
-            anomalies.extend(self._check_commented_code(filepath, lines))
+            anomalies.extend(self._check_commented_code(filepath, lines, masks))
 
         if self.is_enabled("unused_import"):
             anomalies.extend(self._check_unused_imports(filepath, tokens, metrics))
@@ -35,12 +44,17 @@ class DeadCodeDetector(BaseDetector):
 
     # ------------------------------------------------------------------
 
-    def _check_annotations(self, filepath, lines) -> List[Anomaly]:
-        """Detecta comentarios con TODO, FIXME, HACK, XXX."""
+    def _check_annotations(self, filepath, lines, masks) -> List[Anomaly]:
+        """
+        Detecta comentarios con TODO, FIXME, HACK, XXX.
+        Una anotación pendiente solo existe DENTRO de un comentario: la misma
+        palabra en un string ('msg = "TODO list"') o en un docstring es dato.
+        """
         anomalies = []
         for i, line in enumerate(lines, start=1):
-            match = _ANNOTATION_PATTERN.search(line)
-            if match:
+            for match in _ANNOTATION_PATTERN.finditer(line):
+                if get_span_context(masks, i, match.start(), match.end()) != "comment":
+                    continue
                 anomalies.append(Anomaly(
                     file=filepath,
                     line=i,
@@ -50,12 +64,15 @@ class DeadCodeDetector(BaseDetector):
                     message=f"Anotación pendiente encontrada: '{match.group()}'.",
                     context=line.strip(),
                 ))
+                break  # Un reporte por línea es suficiente
         return anomalies
 
-    def _check_commented_code(self, filepath, lines) -> List[Anomaly]:
+    def _check_commented_code(self, filepath, lines, masks) -> List[Anomaly]:
         """
         Detecta bloques consecutivos de líneas que parecen código comentado.
-        Requiere al menos `min_commented_code_block` líneas consecutivas.
+        Requiere al menos `min_commented_code_block` líneas consecutivas y que
+        la línea sea un comentario real (un docstring con código de ejemplo
+        no cuenta).
         """
         anomalies = []
         min_block = self.config.get_threshold("min_commented_code_block", 3)
@@ -63,7 +80,9 @@ class DeadCodeDetector(BaseDetector):
         block_count = 0
 
         for i, line in enumerate(lines, start=1):
-            if is_commented_code_line(line):
+            marker = len(line) - len(line.lstrip())
+            if is_commented_code_line(line) and \
+                    get_span_context(masks, i, marker, marker + 1) == "comment":
                 if block_start is None:
                     block_start = i
                 block_count += 1

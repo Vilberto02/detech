@@ -110,6 +110,37 @@ class TestDeadCodeDetector:
         src = "from pathlib import Path\n\nx = 1\n"
         assert len(self._dco003(src)) == 1
 
+    def _dco(self, source, rule_id, filename="t.py"):
+        from app.detectors.dead_code import DeadCodeDetector
+        from app.core.tokenizer import tokenize_source
+        det = DeadCodeDetector(ConfigManager())
+        tokens = tokenize_source(source, filename)
+        found = det.detect(filename, source.splitlines(), tokens, {})
+        return [a for a in found if a.rule_id == rule_id]
+
+    def test_dco001_todo_en_comentario_python(self):
+        assert len(self._dco("# TODO: arreglar esto\n", "DCO001")) == 1
+
+    def test_dco001_fixme_en_comentario_js(self):
+        assert len(self._dco("// FIXME: revisar\n", "DCO001", "t.js")) == 1
+
+    def test_dco001_todo_en_string_no_reporta(self):
+        # 'TODO' como dato (no como anotación pendiente) no debe contar
+        assert self._dco('msg = "TODO list"\n', "DCO001") == []
+
+    def test_dco001_todo_en_docstring_no_reporta(self):
+        src = '"""\nTODO: documentar la API\n"""\nx = 1\n'
+        assert self._dco(src, "DCO001") == []
+
+    def test_dco002_codigo_comentado_real_reporta(self):
+        src = "# import os\n# import sys\n# import json\nx = 1\n"
+        assert len(self._dco(src, "DCO002")) == 1
+
+    def test_dco002_docstring_con_ejemplos_no_reporta(self):
+        # Un docstring que muestra código de ejemplo no es código comentado
+        src = '"""\n# import os\n# import sys\n# import json\n"""\nx = 1\n'
+        assert self._dco(src, "DCO002") == []
+
 
 class TestLegibilityDetector:
     def test_detects_long_lines(self, file_result):
