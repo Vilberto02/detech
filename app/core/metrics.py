@@ -208,36 +208,82 @@ def get_function_metrics(tokens: List[Token], lines: List[str]) -> List[Dict]:
     return result
 
 
+def _collect_dotted_name(tokens: List[Token], j: int) -> Tuple[List[str], int]:
+    """
+    Avanza sobre un nombre punteado ('os.path', 'a/b') y retorna
+    (partes, índice del primer token que no pertenece al nombre).
+    """
+    parts = []
+    while j < len(tokens):
+        t = tokens[j]
+        # El separador va primero: Pygments puede tipar el '.' como NAME
+        if t.string in (".", "/", "\\"):
+            j += 1
+        elif t.type in (NAME_TOKEN, STRING_TOKEN):
+            parts.append(t.string.strip('"\''))
+            j += 1
+        else:
+            break
+    return parts, j
+
+
 def count_imports(tokens: List[Token]) -> List[Dict]:
     """
-    Detecta declaraciones import y from...import en el código.
+    Detecta declaraciones de import en el código.
+
+    - "import a, b" produce una entrada por módulo.
+    - "from X import a, b" produce UNA sola entrada para X, con los
+      nombres importados en la clave "names" (los que el código referencia).
     """
     imports = []
-    i = 0
     import_keywords = {"import", "from", "require", "include", "use"}
-    while i < len(tokens):
+    n = len(tokens)
+    i = 0
+    while i < n:
         tok = tokens[i]
-        if tok.type in (NAME_TOKEN, "KEYWORD") and tok.string in import_keywords:
-            module_parts = []
-            j = i + 1
-            while j < len(tokens):
-                t_j = tokens[j]
-                if t_j.type in (NAME_TOKEN, STRING_TOKEN, "WHITESPACE"):
-                    if t_j.type != "WHITESPACE":
-                        # Strip quotes if string
-                        mod = t_j.string.strip('"\'')
-                        module_parts.append(mod)
-                    j += 1
-                elif t_j.string in (".", "/", "\\"):
-                    j += 1
-                else:
-                    break
+        if not (tok.type in (NAME_TOKEN, "KEYWORD") and tok.string in import_keywords):
+            i += 1
+            continue
+
+        kind = tok.string
+        line = tok.line
+
+        if kind == "from":
+            module_parts, j = _collect_dotted_name(tokens, i + 1)
+            names = []
+            if j < n and tokens[j].string == "import":
+                j += 1
+                while j < n:
+                    name_parts, j = _collect_dotted_name(tokens, j)
+                    if name_parts:
+                        names.append(name_parts[-1])
+                    if j < n and tokens[j].string == ",":
+                        j += 1
+                    else:
+                        break
             if module_parts:
                 imports.append({
                     "module": ".".join(module_parts),
-                    "line": tok.line,
-                    "kind": tok.string,
+                    "line": line,
+                    "kind": kind,
+                    "names": names,
                 })
-            i = j - 1
-        i += 1
+        else:
+            j = i + 1
+            while j < n:
+                module_parts, j = _collect_dotted_name(tokens, j)
+                if module_parts:
+                    imports.append({
+                        "module": ".".join(module_parts),
+                        "line": line,
+                        "kind": kind,
+                    })
+                if j < n and tokens[j].string == ",":
+                    j += 1
+                else:
+                    break
+
+        # Continuar después de lo consumido (sin retroceder al 'import'
+        # interno de un from-import, que era lo que duplicaba entradas)
+        i = max(j, i + 1)
     return imports

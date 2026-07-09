@@ -92,6 +92,24 @@ class TestDeadCodeDetector:
         commented = [a for a in file_result.anomalies if a.rule_id == "DCO002"]
         assert len(commented) >= 1, "Debe detectar bloque de codigo comentado"
 
+    def _dco003(self, source):
+        from app.detectors.dead_code import DeadCodeDetector
+        from app.core.tokenizer import tokenize_source
+        from app.core.metrics import count_imports
+        det = DeadCodeDetector(ConfigManager())
+        tokens = tokenize_source(source, "t.py")
+        metrics = {"imports": count_imports(tokens)}
+        found = det.detect("t.py", source.splitlines(), tokens, metrics)
+        return [a for a in found if a.rule_id == "DCO003"]
+
+    def test_from_import_usado_no_reporta_dco003(self):
+        src = 'from pathlib import Path\n\np = Path(".")\n'
+        assert self._dco003(src) == []
+
+    def test_from_import_no_usado_reporta_dco003(self):
+        src = "from pathlib import Path\n\nx = 1\n"
+        assert len(self._dco003(src)) == 1
+
 
 class TestLegibilityDetector:
     def test_detects_long_lines(self, file_result):

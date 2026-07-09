@@ -128,20 +128,27 @@ class DeadCodeDetector(BaseDetector):
             module = imp.get("module", "")
             if not module:
                 continue
-            # El nombre referenciable es la última parte del módulo
-            # "from os.path import join" → se usa "join"
-            # "import os.path" → se usa "os"
-            root_name = module.split(".")[0] if "." in module else module
+            names = imp.get("names") or []
+            if names:
+                # "from X import a, b" → lo referenciable son los nombres
+                if any(name in used_names for name in names):
+                    continue
+                context = f"{imp['kind']} {module} import {', '.join(names)}"
+            else:
+                # "import os.path" → lo referenciable es la raíz "os"
+                root_name = module.split(".")[0]
+                if not root_name or root_name in used_names:
+                    continue
+                context = f"{imp['kind']} {module}"
 
-            if root_name and root_name not in used_names:
-                anomalies.append(Anomaly(
-                    file=filepath,
-                    line=imp["line"],
-                    rule_id="DCO003",
-                    category=self.category,
-                    severity="warning",
-                    message=f"Import posiblemente no utilizado: '{module}'.",
-                    context=f"{imp['kind']} {module}",
-                ))
+            anomalies.append(Anomaly(
+                file=filepath,
+                line=imp["line"],
+                rule_id="DCO003",
+                category=self.category,
+                severity="warning",
+                message=f"Import posiblemente no utilizado: '{module}'.",
+                context=context,
+            ))
 
         return anomalies

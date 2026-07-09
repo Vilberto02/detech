@@ -4,6 +4,7 @@ Tests unitarios para las métricas de app/core/metrics.py.
 
 from app.core.tokenizer import tokenize_source
 from app.core.metrics import (
+    count_imports,
     count_lines_of_code,
     estimate_cyclomatic_complexity,
     get_function_metrics,
@@ -226,3 +227,34 @@ def test_continuacion_entre_parentesis_no_es_indentacion_mixta():
     # La línea 3 se alinea con espacios dentro del paréntesis abierto
     src = "def f():\n\tx = calcular(1,\n                 2)\n\treturn x\n"
     assert _mixed(src) is False
+
+
+# ---------------------------------------------------------------------------
+# Conteo de imports
+# ---------------------------------------------------------------------------
+
+def _imports(source: str, filename: str = "t.py"):
+    return count_imports(tokenize_source(source, filename))
+
+
+def test_from_import_produce_una_sola_entrada():
+    imps = _imports("from a import b, c\n")
+    assert len(imps) == 1
+    assert imps[0]["module"] == "a"
+    assert imps[0]["names"] == ["b", "c"]
+
+
+def test_import_multiple_en_una_linea():
+    imps = _imports("import os, sys\n")
+    assert [i["module"] for i in imps] == ["os", "sys"]
+
+
+def test_import_con_puntos():
+    imps = _imports("import os.path\n")
+    assert len(imps) == 1
+    assert imps[0]["module"] == "os.path"
+
+
+def test_varias_lineas_de_import():
+    imps = _imports("import os\nfrom pathlib import Path\n")
+    assert [(i["module"], i["kind"]) for i in imps] == [("os", "import"), ("pathlib", "from")]
