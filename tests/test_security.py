@@ -71,6 +71,22 @@ def test_valor_alfabetico_largo_si_es_credencial():
     assert len(found) == 1
 
 
+def test_filtro_no_suprime_password_corta_con_digito():
+    # "hunter2" tiene 7 caracteres pero contiene un dígito: debe reportarse
+    found = _by_rule(_detect('password = "hunter2"\n'), "SEC001")
+    assert len(found) == 1
+
+
+def test_filtro_no_suprime_api_key_con_guiones():
+    found = _by_rule(_detect('API_KEY = "sk-proj-aB3xK9"\n'), "SEC001")
+    assert len(found) == 1
+
+
+def test_filtro_no_suprime_token_con_prefijo_ghp():
+    found = _by_rule(_detect('token = "ghp_16C7e42F"\n'), "SEC001")
+    assert len(found) == 1
+
+
 # ---------------------------------------------------------------------------
 # SEC003 — inyección SQL
 # ---------------------------------------------------------------------------
