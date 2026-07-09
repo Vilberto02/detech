@@ -4,6 +4,7 @@ Tests unitarios para las métricas de app/core/metrics.py.
 
 from app.core.tokenizer import tokenize_source
 from app.core.metrics import (
+    count_lines_of_code,
     estimate_cyclomatic_complexity,
     get_function_metrics,
     max_nesting_depth,
@@ -164,3 +165,33 @@ def test_nesting_con_indentacion_de_4_espacios():
 def test_nesting_con_tabs():
     src = "if a:\n\tif b:\n\t\tx = 1\n"
     assert max_nesting_depth(src.splitlines()) == 2
+
+
+# ---------------------------------------------------------------------------
+# Conteo de líneas (comentarios multilenguaje vía tokens)
+# ---------------------------------------------------------------------------
+
+def _loc(source: str, filename: str):
+    lines = source.splitlines()
+    return count_lines_of_code(lines, tokenize_source(source, filename))
+
+
+def test_loc_comentarios_python():
+    src = "# comentario\nx = 1\n\n"
+    loc = _loc(src, "t.py")
+    assert loc == {"total": 3, "code": 1, "comment": 1, "blank": 1}
+
+
+def test_loc_comentarios_js():
+    src = (
+        "// comentario\n"
+        "var x = 1; // inline no cuenta como comentario\n"
+        "\n"
+        "/*\n"
+        "bloque\n"
+        "*/\n"
+        "y = 2;\n"
+    )
+    loc = _loc(src, "t.js")
+    # línea 1 (//), y líneas 4-6 (/* */) son comentario; la 2 es código
+    assert loc == {"total": 7, "code": 2, "comment": 4, "blank": 1}

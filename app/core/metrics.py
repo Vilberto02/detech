@@ -24,18 +24,30 @@ from .tokenizer import (
 )
 
 
-def count_lines_of_code(lines: List[str]) -> Dict[str, int]:
+def count_lines_of_code(lines: List[str], tokens: List[Token]) -> Dict[str, int]:
     """
-    Calcula métricas básicas de líneas.
+    Calcula métricas básicas de líneas. Una línea cuenta como comentario
+    si todos sus tokens son COMMENT (según el lexer del lenguaje: #, //,
+    /* */, etc.); una línea con código y comentario al final es código.
 
     Returns:
         Dict con claves: total, code, comment, blank
     """
     total = len(lines)
     blank = sum(1 for l in lines if l.strip() == "")
-    comment = sum(1 for l in lines if l.strip().startswith("#"))
-    code = total - blank - comment
 
+    comment_lines = set()
+    other_lines = set()
+    for tok in tokens:
+        if tok.type == NEWLINE_TOKEN:
+            continue
+        if tok.type == COMMENT_TOKEN:
+            comment_lines.add(tok.line)
+        else:
+            other_lines.add(tok.line)
+    comment = len(comment_lines - other_lines)
+
+    code = total - blank - comment
     return {"total": total, "code": code, "comment": comment, "blank": blank}
 
 

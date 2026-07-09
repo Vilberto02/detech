@@ -62,7 +62,7 @@ class RuleEngine:
 
         # 3. Calcular métricas
         metrics = {
-            "loc": count_lines_of_code(lines),
+            "loc": count_lines_of_code(lines, tokens),
             "cyclomatic_complexity": estimate_cyclomatic_complexity(tokens),
             "max_nesting_depth": max_nesting_depth(lines),
             "mixed_indentation": has_mixed_indentation(lines),
