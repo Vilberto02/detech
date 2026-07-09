@@ -1,6 +1,9 @@
+import os
 import urllib.request
 import json
 from pathlib import Path
+
+BASE_URL = os.environ.get("DETECH_BASE_URL", "http://localhost:8000")
 
 # Test POST /api/analyze
 fixture = Path('tests/fixtures/ejemplo_anomalias.py')
@@ -18,7 +21,7 @@ body = (
 )
 
 req = urllib.request.Request(
-    'http://localhost:8000/api/analyze',
+    BASE_URL + '/api/analyze',
     data=body,
     headers={'Content-Type': 'multipart/form-data; boundary=' + boundary.decode()},
     method='POST'
@@ -37,7 +40,7 @@ print(f"  Informativos: {s['info']}")
 # Test POST /api/report?format=html
 json_bytes = json.dumps(data).encode()
 req2 = urllib.request.Request(
-    'http://localhost:8000/api/report?format=html',
+    BASE_URL + '/api/report?format=html',
     data=json_bytes,
     headers={'Content-Type': 'application/json'},
     method='POST'
