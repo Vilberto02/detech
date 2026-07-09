@@ -35,3 +35,7 @@ detech = "app.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.pytest.ini_options]
+# test_e2e.py (raíz) requiere el servidor levantado; se ejecuta manualmente.
+testpaths = ["tests"]
