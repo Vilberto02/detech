@@ -184,3 +184,37 @@ implica límites que conviene conocer al interpretar un reporte:
   bloque de código comentado.
 - **El análisis estadístico entre archivos (outliers de un lote) no está
   implementado**; figura en las especificaciones como fase futura.
+
+## 7. Marco de calidad: ISO/IEC 25010 y tipo de mantenimiento
+
+### Correspondencia con la mantenibilidad de ISO/IEC 25010
+
+ISO/IEC 25010 descompone la característica de **mantenibilidad** en cinco
+subcaracterísticas: modularidad, reusabilidad, analizabilidad, modificabilidad
+y testabilidad. Cada categoría de detección de DETECH aporta evidencia sobre
+una o más de ellas:
+
+| Categoría DETECH | Reglas | Subcaracterísticas | Justificación |
+| ---------------- | ------ | ------------------ | ------------- |
+| Legibilidad | `LEG001`–`LEG006` | Analizabilidad, modificabilidad | Funciones y archivos largos, líneas extensas, nombres crípticos y ausencia de docstrings elevan el esfuerzo de diagnóstico y el riesgo de introducir defectos al modificar. |
+| Complejidad | `CPX001`–`CPX003` | Modificabilidad, testabilidad | La complejidad ciclomática acota inferiormente el número de casos de prueba para cubrir las ramas; el anidamiento profundo y el exceso de parámetros dificultan cambiar el código con confianza. |
+| Complejidad (acoplamiento) | `CPX004` | Modularidad, reusabilidad | Un módulo con demasiadas dependencias externas es difícil de aislar, sustituir o reutilizar en otro contexto. |
+| Código muerto | `DCO001`–`DCO003` | Analizabilidad | Código comentado, anotaciones pendientes e imports sin uso son ruido que oscurece el diagnóstico y sugiere decisiones inconclusas. |
+| Estilo | `STY001`–`STY002` | Analizabilidad | Las convenciones consistentes (docstring de módulo, nomenclatura homogénea) reducen el costo de comprensión para quien mantiene el código. |
+
+La categoría de **seguridad** (`SEC001`–`SEC003`) no pertenece a la
+mantenibilidad: en ISO/IEC 25010 corresponde a la característica de
+**seguridad** (en particular confidencialidad e integridad). Se incluye en la
+herramienta porque una credencial hardcodeada o una consulta inyectable son
+defectos latentes cuya corrección tardía es mucho más costosa que su
+detección temprana.
+
+### Posición en la taxonomía de mantenimiento (Lientz & Swanson)
+
+Lientz y Swanson clasifican el mantenimiento en correctivo, adaptativo,
+perfectivo y preventivo. DETECH es una herramienta de soporte al
+**mantenimiento preventivo**: detecta anomalías latentes (deuda de
+complejidad, código muerto, defectos de seguridad) antes de que se
+manifiesten como fallos o encarezcan un cambio futuro. De forma secundaria
+apoya el mantenimiento **perfectivo**, al señalar dónde mejorar la estructura
+interna sin alterar el comportamiento observable.
