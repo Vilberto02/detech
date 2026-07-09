@@ -1,6 +1,7 @@
 import argparse
 import sys
 import json
+from dataclasses import asdict
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
@@ -72,7 +73,7 @@ def main():
     
     if args.export_json:
         export_path = Path(args.export_json)
-        export_data = [res.model_dump() for res in all_results]
+        export_data = [asdict(res) for res in all_results]
         with open(export_path, "w", encoding="utf-8") as f:
             json.dump(export_data, f, indent=4)
         console.print(f"[green]Reporte exportado exitosamente a {export_path}[/green]")
