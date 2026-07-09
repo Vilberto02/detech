@@ -10,9 +10,11 @@ from ..core.models import Anomaly
 from ..core.tokenizer import Token
 
 
-# Patrones de credenciales hardcodeadas
+# Patrones de credenciales hardcodeadas.
+# secret_key va antes que secret para que el motor prefiera el match largo
+# (cubre variantes como aws_secret_key = "...").
 _CREDENTIAL_PATTERN = re.compile(
-    r"""(?i)(password|passwd|secret|api_key|apikey|token|auth_token|access_token|private_key)\s*=\s*['"][^'"]{3,}['"]"""
+    r"""(?i)(password|passwd|secret_key|secret|api_key|apikey|token|auth_token|access_token|private_key)\s*=\s*['"][^'"]{3,}['"]"""
 )
 
 # Funciones peligrosas en Python, con su severidad.

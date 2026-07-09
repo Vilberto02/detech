@@ -37,3 +37,18 @@ def test_compile_baja_a_warning():
     found = _by_rule(_detect("c = compile(src, '<s>', 'exec')\n"), "SEC002")
     assert len(found) == 1
     assert found[0].severity == "warning"
+
+
+# ---------------------------------------------------------------------------
+# SEC001 — credenciales hardcodeadas
+# ---------------------------------------------------------------------------
+
+def test_detecta_secret_key_con_prefijo():
+    found = _by_rule(_detect('aws_secret_key = "AKIAIOSFODNN7EXAMPLE"\n'), "SEC001")
+    assert len(found) == 1
+    assert found[0].severity == "critical"
+
+
+def test_detecta_password_simple():
+    found = _by_rule(_detect('db_password = "super_secreta_123"\n'), "SEC001")
+    assert len(found) == 1
