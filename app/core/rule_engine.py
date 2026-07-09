@@ -9,7 +9,7 @@ from typing import List
 
 from ..core.models import Anomaly, FileResult
 from ..core.input_loader import load_file
-from ..core.tokenizer import tokenize_source, get_lines
+from ..core.tokenizer import tokenize_source, get_lines, build_line_masks, get_span_context
 from ..core.metrics import (
     count_lines_of_code,
     estimate_cyclomatic_complexity,
@@ -89,7 +89,7 @@ class RuleEngine:
                 ))
 
         # 5. Aplicar patrones personalizados del usuario
-        all_anomalies.extend(self._apply_custom_patterns(filepath, lines))
+        all_anomalies.extend(self._apply_custom_patterns(filepath, lines, tokens))
 
         # 6. Ordenar por línea
         all_anomalies.sort(key=lambda a: a.line)
@@ -101,15 +101,29 @@ class RuleEngine:
             metrics=metrics,
         )
 
-    def _apply_custom_patterns(self, filepath: str, lines: List[str]) -> List[Anomaly]:
-        """Aplica los patrones regex personalizados definidos por el usuario en detech.yaml."""
+    def _apply_custom_patterns(self, filepath: str, lines: List[str], tokens) -> List[Anomaly]:
+        """
+        Aplica los patrones regex personalizados definidos por el usuario en detech.yaml.
+
+        Cada patrón admite una clave opcional `scope`:
+        - "code" (default): el match debe caer en código vivo.
+        - "comment": el match debe caer dentro de un comentario.
+        - "all": sin filtro de contexto.
+        """
         anomalies = []
+        if not self.config.custom_patterns:
+            return anomalies
+
+        masks = build_line_masks(tokens)
         for pattern_def in self.config.custom_patterns:
             pid = pattern_def.get("id", "CUSTOM")
             name = pattern_def.get("name", pid)
             regex_str = pattern_def.get("pattern", "")
             severity = pattern_def.get("severity", "info")
             message = pattern_def.get("message", f"Patrón '{name}' detectado.")
+            scope = pattern_def.get("scope", "code")
+            if scope not in ("code", "comment", "all"):
+                scope = "code"
 
             if not regex_str:
                 continue
@@ -119,14 +133,19 @@ class RuleEngine:
                 continue
 
             for i, line in enumerate(lines, start=1):
-                if regex.search(line):
-                    anomalies.append(Anomaly(
-                        file=filepath,
-                        line=i,
-                        rule_id=pid,
-                        category="custom",
-                        severity=severity,
-                        message=message,
-                        context=line.strip()[:120],
-                    ))
+                match = regex.search(line)
+                if not match:
+                    continue
+                if scope != "all" and \
+                        get_span_context(masks, i, match.start(), match.end()) != scope:
+                    continue
+                anomalies.append(Anomaly(
+                    file=filepath,
+                    line=i,
+                    rule_id=pid,
+                    category="custom",
+                    severity=severity,
+                    message=message,
+                    context=line.strip()[:120],
+                ))
         return anomalies
