@@ -19,6 +19,7 @@ class Token:
     col: int           # Columna de inicio (0-indexed)
     line_text: str     # Texto completo de la línea donde aparece el token
     pygments_type: object # Tipo de token original de Pygments
+    is_continuation: bool = False  # True si es fragmento de un token multilínea (ej. docstring)
 
 # Tipos de token unificados
 NAME_TOKEN = "NAME"
@@ -96,7 +97,8 @@ def tokenize_source(source: str, filepath: Optional[str] = None) -> List[Token]:
                         line=current_line,
                         col=current_col,
                         line_text=line_text,
-                        pygments_type=t_type
+                        pygments_type=t_type,
+                        is_continuation=(i > 0),
                     ))
                 current_col += len(val_line)
             
@@ -155,6 +157,86 @@ def find_function_boundaries(tokens: List[Token]) -> List[dict]:
                     })
         i += 1
     return functions
+
+def _find_matching_paren(tokens: List[Token], open_idx: int) -> int:
+    """Retorna el índice del ')' que cierra el '(' de open_idx, o -1 si no cierra."""
+    depth = 0
+    for i in range(open_idx, len(tokens)):
+        s = tokens[i].string
+        if s == "(":
+            depth += 1
+        elif s == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+    return -1
+
+
+def find_function_end(
+    tokens: List[Token],
+    lines: List[str],
+    start_line: int,
+    params_token_idx: int,
+) -> int:
+    """
+    Determina la línea final de una función sin construir un AST.
+
+    Tras la firma se decide el modo según el primer token relevante:
+    - Llaves ('{' antes del salto de línea): se balancean '{'/'}' sobre
+      el flujo de tokens (JS, Go, Rust, C...).
+    - Indentación (la firma termina en salto de línea, ej. Python): el
+      bloque termina antes de la primera línea de código con indentación
+      menor o igual a la del encabezado. Las líneas que continúan un
+      token multilínea (docstrings) no cortan el bloque.
+    """
+    total = len(lines)
+    close_idx = _find_matching_paren(tokens, params_token_idx)
+    if close_idx < 0:
+        return total  # firma incompleta: no se puede delimitar
+
+    sig_end_line = start_line
+    brace_idx = -1
+    k = close_idx + 1
+    while k < len(tokens):
+        tok = tokens[k]
+        if tok.string == "{":
+            brace_idx = k
+            break
+        if tok.type == NEWLINE_TOKEN:
+            sig_end_line = tok.line
+            break
+        k += 1
+
+    if brace_idx >= 0:
+        depth = 0
+        for i in range(brace_idx, len(tokens)):
+            s = tokens[i].string
+            if s == "{":
+                depth += 1
+            elif s == "}":
+                depth -= 1
+                if depth == 0:
+                    return tokens[i].line
+        return total  # llave sin cerrar (archivo incompleto)
+
+    # Modo indentación
+    header = lines[start_line - 1] if start_line <= total else ""
+    header_indent = len(header) - len(header.lstrip())
+    continuation_lines = {t.line for t in tokens if t.is_continuation}
+    end = sig_end_line
+    for ln in range(sig_end_line + 1, total + 1):
+        raw = lines[ln - 1]
+        if not raw.strip():
+            continue
+        if ln in continuation_lines:
+            end = ln
+            continue
+        indent = len(raw) - len(raw.lstrip())
+        if indent <= header_indent:
+            break
+        end = ln
+    return end
+
 
 def count_function_params(tokens: List[Token], open_paren_idx: int) -> int:
     """Cuenta parámetros contando comas en el nivel raíz de los paréntesis."""

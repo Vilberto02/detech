@@ -15,6 +15,7 @@ from .tokenizer import (
     NEWLINE_TOKEN,
     CONTROL_FLOW_KEYWORDS,
     find_function_boundaries,
+    find_function_end,
     count_function_params,
 )
 
@@ -120,15 +121,10 @@ def get_function_metrics(tokens: List[Token], lines: List[str]) -> List[Dict]:
     """
     raw_funcs = find_function_boundaries(tokens)
     result = []
-    total_lines = len(lines)
 
-    for idx, func in enumerate(raw_funcs):
+    for func in raw_funcs:
         start = func["start_line"]
-        # La función termina donde empieza la siguiente, o al final del archivo
-        if idx + 1 < len(raw_funcs):
-            end = raw_funcs[idx + 1]["start_line"] - 1
-        else:
-            end = total_lines
+        end = find_function_end(tokens, lines, start, func["params_token_idx"])
 
         param_idx = func.get("params_token_idx", -1)
         params = 0
