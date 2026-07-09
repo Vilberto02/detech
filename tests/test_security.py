@@ -57,8 +57,30 @@ def test_detecta_password_simple():
 def test_constantes_no_son_credenciales():
     # Dogfooding: NAME_TOKEN = "NAME" no es una credencial; el valor es
     # una palabra corta puramente alfabética (sin dígitos ni símbolos)
-    src = 'NAME_TOKEN = "NAME"\nCOMMENT_TOKEN = "COMMENT"\n'
+    src = 'NAME_TOKEN = "NAME"\nCOMMENT_TOKEN = "COMMENT"\nSTRING_TOKEN = "STRING"\n'
     assert _by_rule(_detect(src), "SEC001") == []
+
+
+def test_nombres_compuestos_son_credenciales():
+    # Regresión del experimento con \b: el keyword suele ser SUFIJO de un
+    # identificador compuesto (db_password, PaymentGatewayToken). Un límite
+    # de palabra a la izquierda perdería estos 5 verdaderos positivos, que
+    # son léxicamente idénticos a NAME_TOKEN: la diferencia está en el VALOR,
+    # y de eso se encarga el filtro de plausibilidad.
+    casos = [
+        'db_password = "super_secreta_123"\n',
+        'aws_secret_key = "AKIAIOSFODNN7EXAMPLE"\n',
+        'master_passwd = "Tr0ub4dor&3"\n',
+        'PaymentGatewayToken = "pk_live_9x8y7z"\n',
+        'dbSecret = "s3cr3t_v4lu3"\n',
+    ]
+    for caso in casos:
+        assert len(_by_rule(_detect(caso), "SEC001")) == 1, caso
+
+
+def test_token_simple_con_digitos_es_credencial():
+    found = _by_rule(_detect('token = "abc123"\n'), "SEC001")
+    assert len(found) == 1
 
 
 def test_valor_corto_con_digitos_si_es_credencial():
