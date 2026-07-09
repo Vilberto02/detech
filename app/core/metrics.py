@@ -129,17 +129,49 @@ def max_nesting_depth(lines: List[str]) -> int:
     return max(indent // unit for indent in indents)
 
 
-def has_mixed_indentation(lines: List[str]) -> bool:
+def has_mixed_indentation(lines: List[str], tokens: List[Token]) -> bool:
     """
-    Detecta si el archivo usa tanto tabs como espacios para indentar.
+    Detecta si el archivo mezcla tabs y espacios en la indentación
+    estructural de líneas de código. Se excluyen las líneas interiores
+    de strings multilínea, las continuaciones dentro de paréntesis o
+    corchetes (alineadas con espacios por convención) y los comentarios,
+    cuyo sangrado no define bloques.
 
     Returns:
-        True si se detecta mezcla de tabs y espacios.
+        True si ambos estilos aparecen en líneas de código indentadas.
     """
-    has_tabs = any(line.startswith("\t") for line in lines if line.strip())
-    has_spaces = any(
-        line.startswith(" ") for line in lines if line.strip()
-    )
+    # Líneas que continúan un token multilínea (docstrings, strings largos)
+    string_continuations = {t.line for t in tokens if t.is_continuation}
+
+    # Líneas que comienzan con un paréntesis/corchete aún abierto
+    # (no se rastrean llaves: en JS/Go/Rust delimitan bloques normales)
+    bracket_continuations = set()
+    depth = 0
+    last_line = 0
+    for tok in tokens:
+        if tok.line != last_line:
+            if depth > 0:
+                bracket_continuations.add(tok.line)
+            last_line = tok.line
+        if tok.type == OP_TOKEN:
+            if tok.string in ("(", "["):
+                depth += 1
+            elif tok.string in (")", "]"):
+                depth = max(0, depth - 1)
+
+    code_lines = {
+        tok.line
+        for tok in tokens
+        if tok.type not in (COMMENT_TOKEN, NEWLINE_TOKEN) and not tok.is_continuation
+    }
+
+    has_tabs = has_spaces = False
+    for ln in code_lines - string_continuations - bracket_continuations:
+        line = lines[ln - 1] if ln <= len(lines) else ""
+        if line.startswith("\t"):
+            has_tabs = True
+        elif line.startswith(" "):
+            has_spaces = True
     return has_tabs and has_spaces
 
 

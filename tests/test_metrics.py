@@ -7,6 +7,7 @@ from app.core.metrics import (
     count_lines_of_code,
     estimate_cyclomatic_complexity,
     get_function_metrics,
+    has_mixed_indentation,
     max_nesting_depth,
 )
 
@@ -195,3 +196,33 @@ def test_loc_comentarios_js():
     loc = _loc(src, "t.js")
     # línea 1 (//), y líneas 4-6 (/* */) son comentario; la 2 es código
     assert loc == {"total": 7, "code": 2, "comment": 4, "blank": 1}
+
+
+# ---------------------------------------------------------------------------
+# Indentación mixta (solo indentación estructural de líneas de código)
+# ---------------------------------------------------------------------------
+
+def _mixed(source: str, filename: str = "t.py"):
+    return has_mixed_indentation(source.splitlines(), tokenize_source(source, filename))
+
+
+def test_indentacion_mixta_real():
+    src = "def f():\n\tif a:\n        return 1\n"
+    assert _mixed(src) is True
+
+
+def test_indentacion_consistente_con_espacios():
+    src = "def f():\n    if a:\n        return 1\n"
+    assert _mixed(src) is False
+
+
+def test_docstring_con_espacios_no_es_indentacion_mixta():
+    # Archivo indentado con tabs; el interior del docstring usa espacios
+    src = 'def f():\n\t"""Doc.\n    contenido con espacios\n\t"""\n\treturn 1\n'
+    assert _mixed(src) is False
+
+
+def test_continuacion_entre_parentesis_no_es_indentacion_mixta():
+    # La línea 3 se alinea con espacios dentro del paréntesis abierto
+    src = "def f():\n\tx = calcular(1,\n                 2)\n\treturn x\n"
+    assert _mixed(src) is False

@@ -65,7 +65,7 @@ class RuleEngine:
             "loc": count_lines_of_code(lines, tokens),
             "cyclomatic_complexity": estimate_cyclomatic_complexity(tokens),
             "max_nesting_depth": max_nesting_depth(lines),
-            "mixed_indentation": has_mixed_indentation(lines),
+            "mixed_indentation": has_mixed_indentation(lines, tokens),
             "functions": get_function_metrics(tokens, lines),
             "imports": count_imports(tokens),
         }
