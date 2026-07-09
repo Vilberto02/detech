@@ -3,7 +3,11 @@ Tests unitarios para las métricas de app/core/metrics.py.
 """
 
 from app.core.tokenizer import tokenize_source
-from app.core.metrics import estimate_cyclomatic_complexity, get_function_metrics
+from app.core.metrics import (
+    estimate_cyclomatic_complexity,
+    get_function_metrics,
+    max_nesting_depth,
+)
 
 
 def _funcs(source: str, filename: str = "t.py"):
@@ -132,3 +136,31 @@ def test_complejidad_por_funcion():
     funcs = _funcs(PY_DOS_FUNCIONES)
     assert funcs["simple"]["cyclomatic_complexity"] == 1
     assert funcs["ramas"]["cyclomatic_complexity"] == 3
+
+
+# ---------------------------------------------------------------------------
+# Profundidad de anidamiento (inferencia del ancho de indentación)
+# ---------------------------------------------------------------------------
+
+def test_nesting_con_indentacion_de_2_espacios():
+    src = (
+        "function f() {\n"
+        "  if (a) {\n"
+        "    if (b) {\n"
+        "      c();\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+    # 3 niveles con indentación de 2: con indent fijo de 4 salía 1
+    assert max_nesting_depth(src.splitlines()) == 3
+
+
+def test_nesting_con_indentacion_de_4_espacios():
+    src = "if a:\n    if b:\n        x = 1\n"
+    assert max_nesting_depth(src.splitlines()) == 2
+
+
+def test_nesting_con_tabs():
+    src = "if a:\n\tif b:\n\t\tx = 1\n"
+    assert max_nesting_depth(src.splitlines()) == 2

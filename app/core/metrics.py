@@ -3,6 +3,7 @@ Calculadora de métricas de código fuente.
 Calcula indicadores cuantitativos a partir de tokens y líneas de código.
 """
 
+from collections import Counter
 from typing import List, Dict, Tuple
 from .tokenizer import (
     Token,
@@ -82,29 +83,38 @@ def estimate_cyclomatic_complexity(tokens: List[Token]) -> int:
     return 1 + _count_decision_points(tokens)
 
 
-def max_nesting_depth(lines: List[str], indent_size: int = 4) -> int:
+def _dominant_indent_unit(indents: List[int]) -> int:
+    """
+    Infiere el ancho de un nivel de indentación como la moda de los
+    incrementos positivos entre líneas de código consecutivas.
+    Si no hay incrementos (archivo plano), retorna 4 por convención.
+    """
+    diffs = [b - a for a, b in zip(indents, indents[1:]) if b > a]
+    if not diffs:
+        return 4
+    return Counter(diffs).most_common(1)[0][0]
+
+
+def max_nesting_depth(lines: List[str]) -> int:
     """
     Estima la profundidad máxima de anidamiento basada en la indentación.
-
-    Args:
-        lines: Líneas del código fuente.
-        indent_size: Tamaño de un nivel de indentación (por defecto 4 espacios).
+    El ancho de un nivel se infiere del propio archivo (2 espacios, 4,
+    tabs...), en lugar de asumir 4 espacios.
 
     Returns:
         Profundidad máxima de anidamiento encontrada.
     """
-    max_depth = 0
+    indents = []
     for line in lines:
         stripped = line.lstrip()
         if not stripped or stripped.startswith("#"):
             continue
-        indent = len(line) - len(stripped)
-        # Manejar tabs: convertir a espacios equivalentes
-        tab_count = line[:len(line) - len(stripped)].count("\t")
-        indent_spaces = indent + tab_count * (indent_size - 1)
-        depth = indent_spaces // indent_size
-        max_depth = max(max_depth, depth)
-    return max_depth
+        indents.append(len(line) - len(stripped))
+
+    if not indents:
+        return 0
+    unit = _dominant_indent_unit(indents)
+    return max(indent // unit for indent in indents)
 
 
 def has_mixed_indentation(lines: List[str]) -> bool:
