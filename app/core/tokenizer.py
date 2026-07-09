@@ -5,7 +5,7 @@ Usa Pygments para descomponer el código en tokens sin construir un AST formal.
 
 import re
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 from pygments.lexers import get_lexer_for_filename, guess_lexer
 from pygments.util import ClassNotFound
 from pygments.token import Token as PygmentsToken
@@ -126,6 +126,64 @@ def tokenize_source(source: str, filepath: Optional[str] = None) -> List[Token]:
 
 def get_lines(source: str) -> List[str]:
     return source.splitlines()
+
+
+def _merge_ranges(ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    """Fusiona rangos de columnas solapados o contiguos."""
+    if not ranges:
+        return ranges
+    ranges.sort()
+    merged = [ranges[0]]
+    for start, end in ranges[1:]:
+        last_start, last_end = merged[-1]
+        if start <= last_end:
+            merged[-1] = (last_start, max(last_end, end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
+LineMasks = Dict[int, Dict[str, List[Tuple[int, int]]]]
+
+
+def build_line_masks(tokens: List[Token]) -> LineMasks:
+    """
+    Construye, por línea, los rangos de columnas [inicio, fin) ocupados por
+    comentarios y por strings. Pygments separa comillas y contenido en tokens
+    distintos, por eso los rangos se fusionan; los tokens multilínea ya vienen
+    fragmentados por línea desde tokenize_source, así que las líneas
+    interiores de un docstring quedan cubiertas desde la columna 0.
+    """
+    masks: LineMasks = {}
+    for tok in tokens:
+        if tok.type == COMMENT_TOKEN:
+            kind = "comment"
+        elif tok.type == STRING_TOKEN:
+            kind = "string"
+        else:
+            continue
+        entry = masks.setdefault(tok.line, {"comment": [], "string": []})
+        entry[kind].append((tok.col, tok.col + len(tok.string)))
+    for entry in masks.values():
+        entry["comment"] = _merge_ranges(entry["comment"])
+        entry["string"] = _merge_ranges(entry["string"])
+    return masks
+
+
+def get_span_context(masks: LineMasks, line: int, col_start: int, col_end: int) -> str:
+    """
+    Clasifica el rango de columnas [col_start, col_end) de una línea:
+    'comment' o 'string' si cae completamente dentro de un rango de ese tipo,
+    'code' en caso contrario. Un span que cruza el borde de un string (ej. una
+    concatenación real: literal + variable) se considera código.
+    """
+    entry = masks.get(line)
+    if not entry:
+        return "code"
+    for kind in ("comment", "string"):
+        if any(s <= col_start and col_end <= e for s, e in entry[kind]):
+            return kind
+    return "code"
 
 
 def find_function_boundaries(tokens: List[Token]) -> List[dict]:
