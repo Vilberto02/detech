@@ -34,6 +34,8 @@ _SQL_CONCAT_PATTERNS = [
     re.compile(r"""(?i)(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER)\s+.*%\s*\(?\w"""),
     re.compile(r"""(?i)(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER)\s+.*\.format\s*\("""),
     re.compile(r"""(?i)(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER)\s+.*f['"]"""),
+    # f-string que contiene el keyword SQL y una interpolación: f"UPDATE ... {x}"
+    re.compile(r"""(?i)\bf['"][^'"]*\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER)\b.*\{"""),
 ]
 
 

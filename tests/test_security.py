@@ -52,3 +52,25 @@ def test_detecta_secret_key_con_prefijo():
 def test_detecta_password_simple():
     found = _by_rule(_detect('db_password = "super_secreta_123"\n'), "SEC001")
     assert len(found) == 1
+
+
+# ---------------------------------------------------------------------------
+# SEC003 — inyección SQL
+# ---------------------------------------------------------------------------
+
+def test_detecta_sql_en_fstring_interpolada():
+    src = "query = f\"UPDATE users SET role = 'admin' WHERE id = '{uid}'\"\n"
+    found = _by_rule(_detect(src), "SEC003")
+    assert len(found) == 1
+
+
+def test_fstring_sql_sin_interpolacion_no_reporta():
+    # Sin llaves no hay interpolación y por tanto no hay inyección
+    src = 'query = f"SELECT version"\n'
+    assert _by_rule(_detect(src), "SEC003") == []
+
+
+def test_detecta_sql_por_concatenacion():
+    src = "query = \"SELECT * FROM usuarios WHERE nombre = '\" + nombre + \"'\"\n"
+    found = _by_rule(_detect(src), "SEC003")
+    assert len(found) == 1
