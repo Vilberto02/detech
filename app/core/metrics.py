@@ -9,11 +9,14 @@ from .tokenizer import (
     NAME_TOKEN,
     COMMENT_TOKEN,
     STRING_TOKEN,
+    KEYWORD_TOKEN,
+    OP_TOKEN,
     INDENT_TOKEN,
     DEDENT_TOKEN,
     NL_TOKEN,
     NEWLINE_TOKEN,
-    CONTROL_FLOW_KEYWORDS,
+    DECISION_KEYWORDS,
+    SHORT_CIRCUIT_OPERATORS,
     find_function_boundaries,
     find_function_end,
     count_function_params,
@@ -60,16 +63,23 @@ def lines_exceeding_limit(lines: List[str], limit: int) -> List[Tuple[int, int]]
     ]
 
 
-def estimate_cyclomatic_complexity(tokens: List[Token]) -> int:
-    """
-    Estima la complejidad ciclomática como el conteo de palabras clave de control.
-    Valor base = 1 (flujo lineal mínimo).
-    """
-    count = 1  # Complejidad base
+def _count_decision_points(tokens: List[Token]) -> int:
+    """Cuenta ramificaciones reales (McCabe) y operadores de cortocircuito."""
+    count = 0
     for tok in tokens:
-        if tok.type in (NAME_TOKEN, "KEYWORD") and tok.string in CONTROL_FLOW_KEYWORDS:
+        if tok.type in (NAME_TOKEN, KEYWORD_TOKEN) and tok.string in DECISION_KEYWORDS:
+            count += 1
+        elif tok.type in (OP_TOKEN, KEYWORD_TOKEN) and tok.string in SHORT_CIRCUIT_OPERATORS:
             count += 1
     return count
+
+
+def estimate_cyclomatic_complexity(tokens: List[Token]) -> int:
+    """
+    Estima la complejidad ciclomática según McCabe: 1 (flujo lineal base)
+    + puntos de decisión + operadores booleanos de cortocircuito.
+    """
+    return 1 + _count_decision_points(tokens)
 
 
 def max_nesting_depth(lines: List[str], indent_size: int = 4) -> int:
@@ -131,12 +141,14 @@ def get_function_metrics(tokens: List[Token], lines: List[str]) -> List[Dict]:
         if param_idx >= 0:
             params = count_function_params(tokens, param_idx)
 
+        func_tokens = [t for t in tokens if start <= t.line <= end]
         result.append({
             "name": func["name"],
             "start_line": start,
             "end_line": end,
             "length": end - start + 1,
             "param_count": params,
+            "cyclomatic_complexity": 1 + _count_decision_points(func_tokens),
         })
 
     return result

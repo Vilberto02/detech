@@ -6,7 +6,6 @@ from typing import List
 
 from .base import BaseDetector
 from ..core.models import Anomaly
-from ..core.tokenizer import Token, NAME_TOKEN, CONTROL_FLOW_KEYWORDS
 
 
 class ComplexityDetector(BaseDetector):
@@ -32,22 +31,47 @@ class ComplexityDetector(BaseDetector):
         return anomalies
 
     def _check_complexity(self, filepath, metrics) -> List[Anomaly]:
+        """
+        Reporta complejidad por función (unidad estándar de McCabe).
+        Si el archivo no tiene funciones (script plano), usa la métrica global.
+        """
         limit = self.config.get_threshold("max_complexity", 10)
-        complexity = metrics.get("cyclomatic_complexity", 1)
-        if complexity > limit:
-            return [Anomaly(
-                file=filepath,
-                line=1,
-                rule_id="CPX001",
-                category=self.category,
-                severity="critical",
-                message=(
-                    f"Alta complejidad ciclomática estimada: {complexity} "
-                    f"(máximo: {limit}). El archivo contiene demasiadas ramificaciones."
-                ),
-                context="",
-            )]
-        return []
+        functions = metrics.get("functions", [])
+        anomalies = []
+
+        for func in functions:
+            complexity = func.get("cyclomatic_complexity", 1)
+            if complexity > limit:
+                anomalies.append(Anomaly(
+                    file=filepath,
+                    line=func["start_line"],
+                    rule_id="CPX001",
+                    category=self.category,
+                    severity="critical",
+                    message=(
+                        f"La función '{func['name']}' tiene complejidad ciclomática "
+                        f"estimada {complexity} (máximo: {limit})."
+                    ),
+                    context=f"def {func['name']}(...)",
+                ))
+
+        if not functions:
+            complexity = metrics.get("cyclomatic_complexity", 1)
+            if complexity > limit:
+                anomalies.append(Anomaly(
+                    file=filepath,
+                    line=1,
+                    rule_id="CPX001",
+                    category=self.category,
+                    severity="critical",
+                    message=(
+                        f"Alta complejidad ciclomática estimada: {complexity} "
+                        f"(máximo: {limit}). El archivo contiene demasiadas ramificaciones."
+                    ),
+                    context="",
+                ))
+
+        return anomalies
 
     def _check_nesting(self, filepath, metrics) -> List[Anomaly]:
         limit = self.config.get_threshold("max_nesting_depth", 4)

@@ -35,12 +35,17 @@ INDENT_TOKEN = "INDENT"
 DEDENT_TOKEN = "DEDENT"
 NL_TOKEN = "NL"
 
-CONTROL_FLOW_KEYWORDS = frozenset({
+# Puntos de decisión según McCabe: solo ramificaciones reales del flujo.
+# else/finally/try/with no bifurcan por sí mismos y no cuentan.
+DECISION_KEYWORDS = frozenset({
     # Python
-    "if", "elif", "else", "for", "while", "try", "except", "finally", "with", "case", "match",
+    "if", "elif", "for", "while", "case", "except",
     # JS/TS / Java / C++ / Go / Rust
-    "switch", "catch", "do", "loop", "defer", "go"
+    "catch", "switch", "do", "loop",
 })
+
+# Operadores booleanos de cortocircuito: añaden un camino cada uno.
+SHORT_CIRCUIT_OPERATORS = frozenset({"and", "or", "&&", "||"})
 
 def map_pygments_token_to_unified(token_type) -> str:
     if token_type in PygmentsToken.Keyword:

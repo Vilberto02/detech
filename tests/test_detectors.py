@@ -57,6 +57,31 @@ class TestComplexityDetector:
         param_anomalies = [a for a in file_result.anomalies if a.rule_id == "CPX003"]
         assert len(param_anomalies) >= 1, "Debe detectar funcion con demasiados parametros"
 
+    def test_cpx001_reporta_por_funcion(self):
+        from app.detectors.complexity import ComplexityDetector
+        det = ComplexityDetector(ConfigManager())
+        metrics = {
+            "cyclomatic_complexity": 25,
+            "functions": [
+                {"name": "compleja", "start_line": 10, "end_line": 40,
+                 "length": 31, "param_count": 2, "cyclomatic_complexity": 15},
+                {"name": "simple", "start_line": 50, "end_line": 55,
+                 "length": 6, "param_count": 0, "cyclomatic_complexity": 2},
+            ],
+        }
+        found = [a for a in det.detect("t.py", [], [], metrics) if a.rule_id == "CPX001"]
+        assert len(found) == 1, "Solo la funcion compleja debe reportarse"
+        assert found[0].line == 10
+        assert "compleja" in found[0].message
+
+    def test_cpx001_archivo_sin_funciones_usa_metrica_global(self):
+        from app.detectors.complexity import ComplexityDetector
+        det = ComplexityDetector(ConfigManager())
+        metrics = {"cyclomatic_complexity": 25, "functions": []}
+        found = [a for a in det.detect("t.py", [], [], metrics) if a.rule_id == "CPX001"]
+        assert len(found) == 1
+        assert found[0].line == 1
+
 
 class TestDeadCodeDetector:
     def test_detects_annotations(self, file_result):

@@ -3,7 +3,7 @@ Tests unitarios para las métricas de app/core/metrics.py.
 """
 
 from app.core.tokenizer import tokenize_source
-from app.core.metrics import get_function_metrics
+from app.core.metrics import estimate_cyclomatic_complexity, get_function_metrics
 
 
 def _funcs(source: str, filename: str = "t.py"):
@@ -82,3 +82,53 @@ def test_fin_de_funcion_por_llaves_balanceadas():
     funcs = _funcs(JS_LLAVES, "t.js")
     assert funcs["foo"]["end_line"] == 5
     assert funcs["foo"]["length"] == 5
+
+
+# ---------------------------------------------------------------------------
+# Complejidad ciclomática (McCabe)
+# ---------------------------------------------------------------------------
+
+def test_complejidad_no_cuenta_else_try_finally_with():
+    src = (
+        "try:\n"
+        "    if a:\n"
+        "        pass\n"
+        "    else:\n"
+        "        pass\n"
+        "finally:\n"
+        "    pass\n"
+        "with open('f') as f:\n"
+        "    pass\n"
+    )
+    # Solo 'if' es punto de decisión: base 1 + 1
+    assert estimate_cyclomatic_complexity(tokenize_source(src, "t.py")) == 2
+
+
+def test_complejidad_cuenta_operadores_booleanos_python():
+    src = "if a and b or c:\n    pass\n"
+    # if + and + or: base 1 + 3
+    assert estimate_cyclomatic_complexity(tokenize_source(src, "t.py")) == 4
+
+
+def test_complejidad_cuenta_operadores_booleanos_js():
+    src = "if (a && b || c) {\n  d();\n}\n"
+    assert estimate_cyclomatic_complexity(tokenize_source(src, "t.js")) == 4
+
+
+PY_DOS_FUNCIONES = '''def simple():
+    return 1
+
+
+def ramas(v):
+    if v > 0:
+        return 1
+    if v < 0:
+        return -1
+    return 0
+'''
+
+
+def test_complejidad_por_funcion():
+    funcs = _funcs(PY_DOS_FUNCIONES)
+    assert funcs["simple"]["cyclomatic_complexity"] == 1
+    assert funcs["ramas"]["cyclomatic_complexity"] == 3
