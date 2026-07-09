@@ -66,21 +66,33 @@ Cada familia de anomalías se agrupa en un archivo diferente (ej. `security.py`)
 
 ## 4. Anomalías detectadas
 
-| Categoría         | Código   | Descripción de la Regla                                            |
-| ----------------- | -------- | ------------------------------------------------------------------ |
-| **Legibilidad**   | `LEG001` | Función demasiado larga (LOC > umbral).                            |
-|                   | `LEG003` | Línea de código supera la longitud máxima (ej. 79/120 caracteres). |
-|                   | `LEG005` | Variables con nombres muy cortos (ej. `a = 1`) fuera de bucles.    |
-| **Complejidad**   | `CPX001` | Complejidad Ciclomática alta (muchas ramificaciones).              |
-|                   | `CPX002` | Profundidad de anidamiento elevada.                                |
-|                   | `CPX003` | Función con demasiados parámetros.                                 |
-| **Seguridad**     | `SEC001` | Credenciales o API keys _hardcodeadas_.                            |
-|                   | `SEC002` | Uso de funciones inseguras como `eval()`.                          |
-|                   | `SEC003` | Posible SQL Injection (concatenación en cadenas SQL).              |
-| **Código Muerto** | `DCO001` | Anotaciones `TODO`, `FIXME` o `HACK` olvidadas.                    |
-|                   | `DCO002` | Bloques de código comentados.                                      |
-|                   | `DCO003` | Imports no utilizados.                                             |
-| **Estilo**        | `STY001` | Módulo sin docstring en la cabecera.                               |
+| Categoría         | Código   | Severidad                | Descripción de la Regla                                                                 |
+| ----------------- | -------- | ------------------------ | --------------------------------------------------------------------------------------- |
+| **Legibilidad**   | `LEG001` | Advertencia              | Función demasiado larga (LOC > umbral).                                                 |
+|                   | `LEG002` | Advertencia              | Archivo excesivamente extenso (líneas totales > umbral).                                |
+|                   | `LEG003` | Informativo              | Línea de código supera la longitud máxima (ej. 79/120 caracteres).                      |
+|                   | `LEG004` | Advertencia              | Indentación inconsistente: mezcla de tabs y espacios en líneas de código.               |
+|                   | `LEG005` | Informativo              | Variables con nombres muy cortos (ej. `a = 1`) fuera de bucles.                         |
+|                   | `LEG006` | Informativo              | Función sin docstring.                                                                  |
+| **Complejidad**   | `CPX001` | Crítico                  | Complejidad Ciclomática alta. Se reporta por función; a nivel de archivo si no hay funciones reconocibles. |
+|                   | `CPX002` | Advertencia              | Profundidad de anidamiento elevada.                                                     |
+|                   | `CPX003` | Advertencia              | Función con demasiados parámetros.                                                      |
+|                   | `CPX004` | Advertencia              | Acoplamiento excesivo: demasiados módulos importados.                                   |
+| **Seguridad**     | `SEC001` | Crítico                  | Credenciales o API keys _hardcodeadas_ (con filtro de plausibilidad del valor).         |
+|                   | `SEC002` | Crítico (`compile()`: advertencia) | Uso de funciones inseguras como `eval()`, `exec()`, `__import__()`.           |
+|                   | `SEC003` | Crítico                  | Posible SQL Injection (concatenación, `%`, `.format()` o f-string interpolada).         |
+| **Código Muerto** | `DCO001` | Informativo              | Anotaciones `TODO`, `FIXME`, `HACK`, `XXX` en comentarios.                              |
+|                   | `DCO002` | Advertencia              | Bloques de código comentados.                                                           |
+|                   | `DCO003` | Advertencia              | Imports no utilizados.                                                                  |
+| **Estilo**        | `STY001` | Informativo              | Módulo sin docstring en la cabecera.                                                    |
+|                   | `STY002` | Informativo              | Función con nombre en camelCase donde se prefiere snake_case.                           |
+| **Sistema**       | `SYS000` | Advertencia              | Error interno de un detector (el análisis del archivo continúa).                        |
+
+Los hallazgos de `SEC001`, `SEC003`, `DCO001`, `DCO002` y los patrones personalizados
+se clasifican según su **contexto léxico** (código, comentario o string) usando las
+máscaras de línea del tokenizer: una "credencial" dentro de un comentario o un
+docstring no se reporta, y una anotación `TODO` solo cuenta si está dentro de un
+comentario real.
 
 ## 5. Mejoras y personalización
 
@@ -106,7 +118,13 @@ custom_patterns:
     pattern: "print\\("
     severity: "warning"
     message: "No usar print(), usar logging.info()."
+    scope: "code" # opcional: code (default) | comment | all
 ```
+
+La clave opcional `scope` controla el contexto léxico donde aplica el patrón:
+`code` (default) ignora coincidencias dentro de comentarios y strings; `comment`
+solo busca dentro de comentarios (útil para políticas sobre anotaciones); `all`
+no filtra por contexto.
 
 ### Crear un nuevo detector Python
 
@@ -129,3 +147,40 @@ class PerformanceDetector(BaseDetector):
                 anomalies.append(Anomaly(filepath, i, "PERF001", "performance", "warning", "Uso de sleep detectado", line.strip()))
         return anomalies
 ```
+
+## 6. Limitaciones conocidas
+
+DETECH trabaja exclusivamente sobre el flujo de tokens léxicos y expresiones
+regulares (por restricción de diseño: sin AST y sin ejecutar el código). Eso
+implica límites que conviene conocer al interpretar un reporte:
+
+- **Sin análisis de flujo de datos ni resolución de alcance.** La herramienta
+  no sabe si una variable se sobrescribe, si un nombre está _shadowed_ o si un
+  valor viaja entre funciones. Por ejemplo, `DCO003` (import no utilizado)
+  compara nombres textualmente: un `import numpy as np` se reporta como no
+  usado aunque `np` aparezca, porque el alias no se resuelve.
+- **La complejidad ciclomática es una estimación léxica.** Se calcula como
+  1 + puntos de decisión (`if`, `elif`, `for`, `while`, `case`, `except`,
+  `catch`, `switch`, `do`, `loop`) + operadores de cortocircuito (`and`, `or`,
+  `&&`, `||`) contados sobre los tokens. Puede diferir del McCabe exacto que
+  daría un grafo de control de flujo construido desde un AST.
+- **El fin de una función se detecta por heurística**, no por gramática:
+  balance de llaves en lenguajes con `{}` y dedent en Python. En lenguajes
+  donde la declaración de función no tiene palabra clave (C: `int main(...)`),
+  las funciones no se reconocen, y métricas como `CPX001` se reportan a nivel
+  de archivo en lugar de por función.
+- **`SEC001` usa un filtro de plausibilidad sobre el valor**: un valor de
+  menos de 8 caracteres puramente alfabético no se reporta (evita falsos
+  positivos como `NAME_TOKEN = "NAME"`), a costa de callar contraseñas cortas
+  alfabéticas como `password = "hunter"`. Los nombres compuestos
+  (`db_password`, `PaymentGatewayToken`) sí se detectan por sufijo.
+- **`SEC003` descarta solo coincidencias dentro de comentarios, no de
+  strings**: una inyección real puede vivir íntegramente dentro del literal
+  (`sprintf(query, "... '%s'", buf)` o una f-string interpolada). Un string
+  SQL inofensivo no se reporta porque los patrones exigen un operador de
+  concatenación o formato.
+- **`DCO001` y `DCO002` solo consideran comentarios reales**: un `TODO`
+  dentro de un string es dato, y un docstring con código de ejemplo no es un
+  bloque de código comentado.
+- **El análisis estadístico entre archivos (outliers de un lote) no está
+  implementado**; figura en las especificaciones como fase futura.
